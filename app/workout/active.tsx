@@ -50,7 +50,7 @@ export default function ActiveWorkoutScreen() {
     let workoutName = 'Custom Session';
 
     if (templateId) {
-      const tmpl = db.getFirstSync<any>('SELECT name FROM workout_templates WHERE id = ?', [templateId]);
+      const tmpl = db.getFirstSync<any>('SELECT name FROM workout_templates WHERE id = ?', [templateId as string]);
       if (tmpl) workoutName = tmpl.name;
 
       loadedExercises = db.getAllSync<any>(`
@@ -59,7 +59,7 @@ export default function ActiveWorkoutScreen() {
         JOIN exercises e ON e.id = te.exercise_id
         WHERE te.template_id = ?
         ORDER BY te.order_index ASC
-      `, [templateId]);
+      `, [templateId as string]);
     }
 
     startWorkout(templateId ? String(templateId) : null, workoutName, loadedExercises);

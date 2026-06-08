@@ -37,10 +37,10 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
         const table = op.table;
         // In a real production app, we map tables and handle specific columns.
         // This generic upload assumes Postgres tables match the SQLite schema.
-        if (op.op === 'PUT') {
+        if (op.op === 'PUT' && op.opData) {
           await supabase.from(table).upsert({ ...op.opData, id: op.id });
-        } else if (op.op === 'PATCH') {
-          await supabase.from(table).update(op.opData).eq('id', op.id);
+        } else if (op.op === 'PATCH' && op.opData) {
+          await supabase.from(table).update(op.opData as any).eq('id', op.id);
         } else if (op.op === 'DELETE') {
           await supabase.from(table).delete().eq('id', op.id);
         }

@@ -1,6 +1,6 @@
-import { AppSchema, column, Table } from '@powersync/react-native';
+import { Schema, column, Table } from '@powersync/react-native';
 
-export const schema = new AppSchema({
+export const schema = new Schema({
   user_equipment: new Table({
     user_id: column.text,
     equipment: column.text,

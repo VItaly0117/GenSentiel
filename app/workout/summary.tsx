@@ -28,7 +28,7 @@ export default function WorkoutSummaryScreen() {
     if (!workoutId) return;
     const db = getDb();
     
-    const w = db.getFirstSync<any>('SELECT name FROM workouts WHERE id = ?', [workoutId]);
+    const w = db.getFirstSync<any>('SELECT * FROM workouts WHERE id = ?;', [workoutId as string]);
     setWorkout(w);
 
     const s = getWorkoutStats(String(workoutId));
@@ -40,7 +40,7 @@ export default function WorkoutSummaryScreen() {
       FROM workout_sets ws
       JOIN exercises e ON e.id = ws.exercise_id
       WHERE ws.workout_id = ? AND ws.completed = 1
-    `, [workoutId]);
+    `, [workoutId as string]);
 
     const suggs = [];
     for (const ex of exList) {

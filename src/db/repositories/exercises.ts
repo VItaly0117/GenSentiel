@@ -84,9 +84,9 @@ export function getProgressionChain(exerciseId: string): Exercise[] {
 
   while (currentId && !visited.has(currentId)) {
     visited.add(currentId);
-    const exercise = db.getFirstSync<Exercise>(
+    const exercise: Exercise | null = db.getFirstSync<Exercise>(
       'SELECT * FROM exercises WHERE id = ?;',
-      currentId
+      [currentId as string]
     );
     if (!exercise) break;
     chain.unshift(exercise);

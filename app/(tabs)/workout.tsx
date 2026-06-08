@@ -52,17 +52,17 @@ export default function WorkoutListScreen() {
     loadData();
   }, []);
 
-  const handleGenerateProgram = () => {
+  const handleGenerateProgram = async () => {
     setIsGenerating(true);
     try {
       const equipment = getUserEquipment();
-      const generatedDays = generateProgram({
+      const generatedDays = await generateProgram({
         equipment,
         splitType: 'full_body',
         difficulty: 3,
         daysPerWeek: 3
       });
-      saveGeneratedProgram(generatedDays);
+      await saveGeneratedProgram(generatedDays);
       loadData();
     } catch (e) {
       console.error(e);
