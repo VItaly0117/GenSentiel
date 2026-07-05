@@ -227,7 +227,7 @@ export default function DashboardScreen() {
     <View style={styles.container}>
       {/* App Bar */}
       <View style={styles.appBar}>
-        <Pressable style={styles.iconBtn}>
+        <Pressable style={styles.iconBtn} onPress={() => router.push('/settings')}>
           <Menu size={24} color={C.onSurface} />
         </Pressable>
         <Text style={styles.appTitle}>GenSentiel</Text>

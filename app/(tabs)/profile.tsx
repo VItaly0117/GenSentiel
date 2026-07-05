@@ -27,6 +27,8 @@ export default function ProfileScreen() {
   const [weightInput, setWeightInput] = useState('');
   const [bodyFatInput, setBodyFatInput] = useState('');
   const [waistInput, setWaistInput] = useState('');
+  const [chestInput, setChestInput] = useState('');
+  const [armsInput, setArmsInput] = useState('');
 
   const loadData = () => {
     const data = getBodyMetricsHistory(30);
@@ -40,6 +42,8 @@ export default function ProfileScreen() {
     setWeightInput(current?.weight_kg?.toString() ?? '');
     setBodyFatInput(current?.body_fat_pct?.toString() ?? '');
     setWaistInput(current?.waist_cm?.toString() ?? '');
+    setChestInput(current?.chest_cm?.toString() ?? '');
+    setArmsInput(current?.arms_cm?.toString() ?? '');
     setShowModal(true);
   };
 
@@ -49,6 +53,8 @@ export default function ProfileScreen() {
       weight_kg: parseFloat(weightInput) || undefined,
       body_fat_pct: parseFloat(bodyFatInput) || undefined,
       waist_cm: parseFloat(waistInput) || undefined,
+      chest_cm: parseFloat(chestInput) || undefined,
+      arms_cm: parseFloat(armsInput) || undefined,
     });
     setShowModal(false);
     loadData();
@@ -212,6 +218,31 @@ export default function ProfileScreen() {
               placeholder="e.g. 85"
               placeholderTextColor={Colors.onSurfaceVariant}
             />
+
+            <View style={styles.modalRow}>
+              <View style={styles.modalHalf}>
+                <Text style={styles.inputLabel}>CHEST (CM)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={chestInput}
+                  onChangeText={setChestInput}
+                  keyboardType="decimal-pad"
+                  placeholder="e.g. 104"
+                  placeholderTextColor={Colors.onSurfaceVariant}
+                />
+              </View>
+              <View style={styles.modalHalf}>
+                <Text style={styles.inputLabel}>ARMS (CM)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={armsInput}
+                  onChangeText={setArmsInput}
+                  keyboardType="decimal-pad"
+                  placeholder="e.g. 38"
+                  placeholderTextColor={Colors.onSurfaceVariant}
+                />
+              </View>
+            </View>
 
             <Pressable style={styles.saveButton} onPress={handleSave}>
               <Text style={styles.saveButtonText}>SAVE METRICS</Text>
@@ -425,6 +456,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     fontSize: 16,
     marginBottom: 16,
+  },
+  modalRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalHalf: {
+    flex: 1,
   },
   saveButton: {
     backgroundColor: Colors.primaryContainer,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Switch, Pressable, ScrollView, SafeAreaView, Alert } from 'react-native';
+import { View, Text, StyleSheet, Switch, Pressable, ScrollView, SafeAreaView, Alert, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CloudOff, Cloud, Bell, Moon, Database, Shield, Download, ChevronLeft, HelpCircle, Camera } from 'lucide-react-native';
 import { getDb } from '../../src/db/database';
@@ -58,6 +58,35 @@ export default function SettingsScreen() {
         },
       ]
     );
+  };
+
+  const handleExport = async () => {
+    try {
+      const db = getDb();
+      const workouts = db.getAllSync<any>(`
+        SELECT w.name, w.started_at, w.duration_s,
+          COUNT(ws.id) as sets,
+          SUM(ws.weight_kg * ws.reps) as volume
+        FROM workouts w
+        LEFT JOIN workout_sets ws ON w.id = ws.workout_id AND ws.completed = 1
+        WHERE w.finished_at IS NOT NULL
+        GROUP BY w.id
+        ORDER BY w.started_at DESC
+      `);
+
+      const header = 'Date,Name,Duration (min),Sets,Volume (kg)';
+      const rows = workouts.map((w) => {
+        const date = w.started_at?.split('T')[0] ?? '';
+        const dur = Math.round((w.duration_s || 0) / 60);
+        const vol = Math.round(w.volume || 0);
+        return `${date},"${w.name}",${dur},${w.sets || 0},${vol}`;
+      });
+      const csv = [header, ...rows].join('\n');
+
+      await Share.share({ message: csv, title: 'GenSentiel Workout Log' });
+    } catch (e) {
+      Alert.alert('Export Error', 'Could not export data.');
+    }
   };
 
   const renderSectionHeader = (title: string) => (
@@ -152,10 +181,10 @@ export default function SettingsScreen() {
             handleCloudSync
           )}
           {renderRow(
-            <Download size={20} color={Colors.primaryContainer} />, 
+            <Download size={20} color={Colors.primaryContainer} />,
             'Export Telemetry',
             null,
-            () => Alert.alert('Export', 'Telemetry export started...')
+            handleExport
           )}
           {renderRow(
             <Database size={20} color={Colors.error} />, 
@@ -169,12 +198,16 @@ export default function SettingsScreen() {
         {renderSectionHeader('SYSTEM INFO')}
         <View style={styles.group}>
           {renderRow(
-            <Shield size={20} color={Colors.primaryContainer} />, 
-            'Privacy Policy'
+            <Shield size={20} color={Colors.primaryContainer} />,
+            'Privacy Policy',
+            <View style={{ transform: [{ rotate: '180deg' }] }}><ChevronLeft size={20} color={Colors.onSurfaceVariant} /></View>,
+            () => router.push('/settings/privacy')
           )}
           {renderRow(
-            <HelpCircle size={20} color={Colors.primaryContainer} />, 
-            'Help & Documentation'
+            <HelpCircle size={20} color={Colors.primaryContainer} />,
+            'Help & Documentation',
+            <View style={{ transform: [{ rotate: '180deg' }] }}><ChevronLeft size={20} color={Colors.onSurfaceVariant} /></View>,
+            () => router.push('/settings/help')
           )}
         </View>
 
