@@ -170,7 +170,7 @@ export default function DashboardScreen() {
                 Push-up volume increased 5% this week
               </Text>
             </View>
-            <Pressable style={styles.alertViewBtn}>
+            <Pressable style={styles.alertViewBtn} onPress={() => router.push('/(tabs)/history')}>
               <Text style={styles.alertViewText}>View</Text>
             </Pressable>
           </View>

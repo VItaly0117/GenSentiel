@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
-import { Camera, ChevronLeft, Trash2, Maximize2 } from 'lucide-react-native';
+import { File, Directory, Paths } from 'expo-file-system';
+import { Camera, ChevronLeft, Trash2 } from 'lucide-react-native';
 
 const Colors = {
   black: '#000000',
@@ -26,33 +26,32 @@ export default function ProgressPhotosScreen() {
   const router = useRouter();
   const [photos, setPhotos] = useState<ProgressPhoto[]>([]);
 
-  // We could use SQLite, but for this final sprint, we just use FileSystem to read a directory
-  const PHOTOS_DIR = FileSystem.documentDirectory + 'progress_photos/';
+  const getPhotosDir = () => new Directory(Paths.document, 'progress_photos');
 
   useEffect(() => {
     loadPhotos();
   }, []);
 
-  const loadPhotos = async () => {
+  const loadPhotos = () => {
     try {
-      const dirInfo = await FileSystem.getInfoAsync(PHOTOS_DIR);
-      if (!dirInfo.exists) {
-        await FileSystem.makeDirectoryAsync(PHOTOS_DIR, { intermediates: true });
+      const dir = getPhotosDir();
+      if (!dir.exists) {
+        dir.create({ intermediates: true, idempotent: true });
         return;
       }
-      
-      const files = await FileSystem.readDirectoryAsync(PHOTOS_DIR);
-      const loaded = files.map(file => {
-        // file format expected: timestamp.jpg
-        const timestamp = parseInt(file.split('.')[0]);
-        return {
-          id: file,
-          uri: PHOTOS_DIR + file,
-          date: new Date(timestamp).toISOString()
-        };
-      });
-      
-      // Sort newest first
+
+      const items = dir.list();
+      const loaded = items
+        .filter((item): item is File => item instanceof File)
+        .map(file => {
+          const timestamp = parseInt(file.name.split('.')[0]);
+          return {
+            id: file.name,
+            uri: file.uri,
+            date: new Date(timestamp).toISOString(),
+          };
+        });
+
       loaded.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setPhotos(loaded);
     } catch (e) {
@@ -74,30 +73,39 @@ export default function ProgressPhotosScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      const sourceUri = result.assets[0].uri;
-      const fileName = Date.now() + '.jpg';
-      const destUri = PHOTOS_DIR + fileName;
-      
-      await FileSystem.copyAsync({
-        from: sourceUri,
-        to: destUri
-      });
-      
-      loadPhotos();
+      try {
+        const sourceUri = result.assets[0].uri;
+        const fileName = `${Date.now()}.jpg`;
+        const dir = getPhotosDir();
+        if (!dir.exists) dir.create({ intermediates: true, idempotent: true });
+
+        const sourceFile = new File(sourceUri);
+        const destFile = new File(dir, fileName);
+        sourceFile.copy(destFile);
+        loadPhotos();
+      } catch (e) {
+        console.error('Failed to save photo', e);
+        Alert.alert('Error', 'Failed to save photo. Please try again.');
+      }
     }
   };
 
-  const deletePhoto = async (id: string, uri: string) => {
+  const deletePhoto = (id: string, uri: string) => {
     Alert.alert('Delete Photo?', 'Are you sure you want to delete this progress photo?', [
       { text: 'Cancel', style: 'cancel' },
-      { 
-        text: 'Delete', 
+      {
+        text: 'Delete',
         style: 'destructive',
-        onPress: async () => {
-          await FileSystem.deleteAsync(uri, { idempotent: true });
+        onPress: () => {
+          try {
+            const file = new File(uri);
+            if (file.exists) file.delete();
+          } catch (e) {
+            console.error('Failed to delete photo', e);
+          }
           loadPhotos();
-        }
-      }
+        },
+      },
     ]);
   };
 
