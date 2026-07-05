@@ -123,7 +123,7 @@ export default function SettingsScreen() {
           {renderRow(
             <Camera size={20} color={Colors.onSurface} />, 
             'Progress Photos',
-            <ChevronLeft size={20} color={Colors.onSurfaceVariant} style={{ transform: [{ rotate: '180deg' }] }} />,
+            <View style={{ transform: [{ rotate: '180deg' }] }}><ChevronLeft size={20} color={Colors.onSurfaceVariant} /></View>,
             () => router.push('/settings/photos')
           )}
           {renderRow(

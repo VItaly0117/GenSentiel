@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView } from 'react-native';
 import { Plus, Coffee, Utensils, UtensilsCrossed, Apple } from 'lucide-react-native';
+import { useFocusEffect } from 'expo-router';
 import { MacroRing } from '../../src/components/nutrition/MacroRing';
 import { getDayNutrition, addNutritionLog, NutritionLog } from '../../src/db/repositories/nutrition';
 
@@ -34,9 +35,7 @@ export default function NutritionScreen() {
     setLogs(data);
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useFocusEffect(useCallback(() => { loadData(); }, []));
 
   const handleAddDummyFood = () => {
     const today = new Date().toISOString().split('T')[0];

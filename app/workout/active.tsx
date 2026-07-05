@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Alert, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, Alert, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { X, SkipForward } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';

@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Star } from 'lucide-react-native';
+import { useFocusEffect } from 'expo-router';
 import { getDb } from '../../src/db/database';
 
 const Colors = {
@@ -21,9 +22,7 @@ export default function HistoryScreen() {
   const [stats, setStats] = useState({ sessions: 0, volume: 0, prs: 0, exercises: 0 });
   const [workouts, setWorkouts] = useState<any[]>([]);
 
-  useEffect(() => {
-    loadHistory();
-  }, [filter]);
+  useFocusEffect(useCallback(() => { loadHistory(); }, [filter]));
 
   const loadHistory = () => {
     const db = getDb();

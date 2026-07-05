@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
 import Svg, { Circle as SvgCircle } from 'react-native-svg';
 import {
@@ -10,7 +11,10 @@ import {
   Zap,
   ChevronRight,
 } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { getDb } from '../../src/db/database';
+import { getDayNutrition } from '../../src/db/repositories/nutrition';
+import { getBodyMetricsHistory } from '../../src/db/repositories/nutrition';
 
 const C = {
   black: '#000000',
@@ -33,8 +37,7 @@ const C = {
   glassBorder: 'rgba(138, 43, 226, 0.3)',
 };
 
-// CalorieRing component
-function CalorieRing({ calories = 842, goal = 1200 }: { calories?: number; goal?: number }) {
+function CalorieRing({ calories = 0, goal = 2500 }: { calories?: number; goal?: number }) {
   const size = 160;
   const strokeWidth = 8;
   const radius = (size - strokeWidth) / 2;
@@ -45,7 +48,6 @@ function CalorieRing({ calories = 842, goal = 1200 }: { calories?: number; goal?
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
-        {/* Track */}
         <SvgCircle
           cx={size / 2}
           cy={size / 2}
@@ -54,7 +56,6 @@ function CalorieRing({ calories = 842, goal = 1200 }: { calories?: number; goal?
           strokeWidth={strokeWidth}
           fill="transparent"
         />
-        {/* Progress */}
         <SvgCircle
           cx={size / 2}
           cy={size / 2}
@@ -67,7 +68,6 @@ function CalorieRing({ calories = 842, goal = 1200 }: { calories?: number; goal?
           strokeLinecap="round"
         />
       </Svg>
-      {/* Center label */}
       <View style={styles.ringCenter}>
         <Text style={styles.ringValue}>{calories}</Text>
         <Text style={styles.ringUnit}>KCAL</Text>
@@ -76,7 +76,6 @@ function CalorieRing({ calories = 842, goal = 1200 }: { calories?: number; goal?
   );
 }
 
-// StatCard inline
 function StatCard({
   label,
   value,
@@ -103,8 +102,126 @@ function StatCard({
   );
 }
 
+function calcStreak(db: ReturnType<typeof getDb>): number {
+  const rows = db.getAllSync<{ day: string }>(`
+    SELECT DISTINCT date(started_at) as day
+    FROM workouts
+    WHERE finished_at IS NOT NULL
+    ORDER BY day DESC
+    LIMIT 60
+  `);
+  if (rows.length === 0) return 0;
+
+  let streak = 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let i = 0; i < rows.length; i++) {
+    const d = new Date(rows[i].day);
+    const expected = new Date(today);
+    expected.setDate(today.getDate() - i);
+    if (d.toDateString() === expected.toDateString()) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+function calcWeekSessions(db: ReturnType<typeof getDb>): number {
+  const monday = new Date();
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  const y = monday.getFullYear();
+  const m = String(monday.getMonth() + 1).padStart(2, '0');
+  const d = String(monday.getDate()).padStart(2, '0');
+  const mondayStr = `${y}-${m}-${d}`;
+
+  const row = db.getFirstSync<{ cnt: number }>(`
+    SELECT COUNT(*) as cnt
+    FROM workouts
+    WHERE finished_at IS NOT NULL AND date(started_at) >= ?
+  `, [mondayStr]);
+  return row?.cnt ?? 0;
+}
+
 export default function DashboardScreen() {
   const router = useRouter();
+  const [calories, setCalories] = useState(0);
+  const [weight, setWeight] = useState<string>('--');
+  const [bodyFat, setBodyFat] = useState<string>('--');
+  const [streak, setStreak] = useState(0);
+  const [weekSessions, setWeekSessions] = useState(0);
+  const [lastWorkout, setLastWorkout] = useState<any>(null);
+  const [lastWorkoutStats, setLastWorkoutStats] = useState<{ exercises: number; duration: number; volume: number } | null>(null);
+
+  const loadData = useCallback(() => {
+    const db = getDb();
+    const today = new Date().toISOString().split('T')[0];
+
+    // Calories today
+    const logs = getDayNutrition(today);
+    const totalCals = logs.reduce((sum, l) => sum + l.calories, 0);
+    setCalories(totalCals);
+
+    // Latest body metrics
+    const metrics = getBodyMetricsHistory(1);
+    const latest = metrics[0];
+    setWeight(latest?.weight_kg != null ? latest.weight_kg.toFixed(1) : '--');
+    setBodyFat(latest?.body_fat_pct != null ? latest.body_fat_pct.toFixed(1) : '--');
+
+    // Streak
+    setStreak(calcStreak(db));
+
+    // This week
+    setWeekSessions(calcWeekSessions(db));
+
+    // Last workout
+    const lw = db.getFirstSync<any>(`
+      SELECT id, name, started_at, duration_s
+      FROM workouts
+      WHERE finished_at IS NOT NULL
+      ORDER BY started_at DESC
+      LIMIT 1
+    `);
+    setLastWorkout(lw ?? null);
+
+    if (lw) {
+      const stats = db.getFirstSync<any>(`
+        SELECT
+          COUNT(DISTINCT exercise_id) as exercises,
+          SUM(weight_kg * reps) as volume
+        FROM workout_sets
+        WHERE workout_id = ? AND completed = 1
+      `, [lw.id]);
+      setLastWorkoutStats({
+        exercises: stats?.exercises ?? 0,
+        duration: lw.duration_s ?? 0,
+        volume: stats?.volume ?? 0,
+      });
+    } else {
+      setLastWorkoutStats(null);
+    }
+  }, []);
+
+  useFocusEffect(loadData);
+
+  const formatLastWorkoutDate = (isoStr: string) => {
+    const d = new Date(isoStr);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    return `${diffDays}d ago`;
+  };
+
+  const formatDuration = (s: number) => `${Math.floor(s / 60)} min`;
+
+  const formatVolume = (v: number) => {
+    if (v >= 1000) return `${(v / 1000).toFixed(1)}k kg`;
+    return `${Math.round(v)} kg`;
+  };
 
   return (
     <View style={styles.container}>
@@ -114,7 +231,7 @@ export default function DashboardScreen() {
           <Menu size={24} color={C.onSurface} />
         </Pressable>
         <Text style={styles.appTitle}>GenSentiel</Text>
-        <Pressable style={styles.iconBtn}>
+        <Pressable style={styles.iconBtn} onPress={loadData}>
           <RefreshCw size={20} color={C.onSurfaceVariant} />
         </Pressable>
       </View>
@@ -127,7 +244,7 @@ export default function DashboardScreen() {
         {/* Hero Card — Daily Output */}
         <View style={styles.heroCard}>
           <Text style={styles.heroLabel}>DAILY OUTPUT</Text>
-          <CalorieRing calories={842} goal={1200} />
+          <CalorieRing calories={calories} goal={2500} />
           <Pressable
             style={({ pressed }) => [
               styles.heroButton,
@@ -142,20 +259,20 @@ export default function DashboardScreen() {
 
         {/* Stats Bento Grid */}
         <View style={styles.statsGrid}>
-          <StatCard label="WEIGHT" value="82.4" unit="kg" />
+          <StatCard label="WEIGHT" value={weight} unit={weight !== '--' ? 'kg' : undefined} />
           <StatCard
             label="BODY FAT"
-            value="14.2"
-            unit="%"
+            value={bodyFat}
+            unit={bodyFat !== '--' ? '%' : undefined}
             accentColor={C.tertiaryFixedDim}
           />
           <StatCard
             label="STREAK"
-            value="12"
+            value={String(streak)}
             unit="days"
             accentColor={C.primaryFixedDim}
           />
-          <StatCard label="THIS WEEK" value="4/5" unit="sessions" />
+          <StatCard label="THIS WEEK" value={String(weekSessions)} unit="sessions" />
         </View>
 
         {/* Progression Alert */}
@@ -167,7 +284,7 @@ export default function DashboardScreen() {
             <View style={styles.alertTextContainer}>
               <Text style={styles.alertTitle}>PROGRESSION ALERT</Text>
               <Text style={styles.alertSubtitle}>
-                Push-up volume increased 5% this week
+                Check your history for progression suggestions
               </Text>
             </View>
             <Pressable style={styles.alertViewBtn} onPress={() => router.push('/(tabs)/history')}>
@@ -177,37 +294,50 @@ export default function DashboardScreen() {
         </View>
 
         {/* Last Workout */}
-        <View style={styles.lastWorkoutCard}>
-          <View style={styles.lastWorkoutHeader}>
+        {lastWorkout ? (
+          <View style={styles.lastWorkoutCard}>
+            <View style={styles.lastWorkoutHeader}>
+              <Text style={styles.sectionTitle}>LAST MISSION</Text>
+              <View style={styles.yesterdayBadge}>
+                <Text style={styles.yesterdayText}>{formatLastWorkoutDate(lastWorkout.started_at)}</Text>
+              </View>
+            </View>
+            <Text style={styles.workoutName}>{lastWorkout.name}</Text>
+            <View style={styles.workoutStats}>
+              {lastWorkoutStats && lastWorkoutStats.exercises > 0 && (
+                <>
+                  <View style={styles.workoutStatItem}>
+                    <Dumbbell size={14} color={C.onSurfaceVariant} />
+                    <Text style={styles.workoutStatText}>{lastWorkoutStats.exercises} Exercises</Text>
+                  </View>
+                  <View style={styles.dotSep} />
+                </>
+              )}
+              <View style={styles.workoutStatItem}>
+                <Clock size={14} color={C.onSurfaceVariant} />
+                <Text style={styles.workoutStatText}>{formatDuration(lastWorkoutStats?.duration ?? 0)}</Text>
+              </View>
+              {lastWorkoutStats && lastWorkoutStats.volume > 0 && (
+                <>
+                  <View style={styles.dotSep} />
+                  <View style={styles.workoutStatItem}>
+                    <Zap size={14} color={C.onSurfaceVariant} />
+                    <Text style={styles.workoutStatText}>{formatVolume(lastWorkoutStats.volume)}</Text>
+                  </View>
+                </>
+              )}
+            </View>
+            <Pressable style={styles.viewWorkoutRow} onPress={() => router.push('/(tabs)/history')}>
+              <Text style={styles.viewWorkoutText}>View Details</Text>
+              <ChevronRight size={16} color={C.primaryFixedDim} />
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.lastWorkoutCard}>
             <Text style={styles.sectionTitle}>LAST MISSION</Text>
-            <View style={styles.yesterdayBadge}>
-              <Text style={styles.yesterdayText}>Yesterday</Text>
-            </View>
+            <Text style={[styles.workoutStatText, { marginTop: 8 }]}>No workouts logged yet. Start your first session!</Text>
           </View>
-          <Text style={styles.workoutName}>
-            Full Body Protocol Alpha
-          </Text>
-          <View style={styles.workoutStats}>
-            <View style={styles.workoutStatItem}>
-              <Dumbbell size={14} color={C.onSurfaceVariant} />
-              <Text style={styles.workoutStatText}>6 Exercises</Text>
-            </View>
-            <View style={styles.dotSep} />
-            <View style={styles.workoutStatItem}>
-              <Clock size={14} color={C.onSurfaceVariant} />
-              <Text style={styles.workoutStatText}>45 min</Text>
-            </View>
-            <View style={styles.dotSep} />
-            <View style={styles.workoutStatItem}>
-              <Zap size={14} color={C.onSurfaceVariant} />
-              <Text style={styles.workoutStatText}>12,000 kg</Text>
-            </View>
-          </View>
-          <Pressable style={styles.viewWorkoutRow} onPress={() => router.push('/history')}>
-            <Text style={styles.viewWorkoutText}>View Details</Text>
-            <ChevronRight size={16} color={C.primaryFixedDim} />
-          </Pressable>
-        </View>
+        )}
       </ScrollView>
     </View>
   );

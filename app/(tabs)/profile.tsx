@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView } from 'react-native';
 import { Activity, Scaling, Ruler, Expand, Plus, Settings } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { getBodyMetricsHistory, saveBodyMetrics, BodyMetric } from '../../src/db/repositories/nutrition';
 
@@ -30,9 +30,7 @@ export default function ProfileScreen() {
     setCurrent(data.length > 0 ? data[data.length - 1] : null);
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useFocusEffect(useCallback(() => { loadData(); }, []));
 
   const handleLogDummy = () => {
     const today = new Date().toISOString().split('T')[0];

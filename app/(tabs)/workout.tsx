@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Search, Plus, Timer, ListTree, CheckCircle, Trophy } from 'lucide-react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { Search, Plus, Timer, ListTree, CheckCircle } from 'lucide-react-native';
 import { getDb } from '../../src/db/database';
 import { generateProgram, saveGeneratedProgram } from '../../src/utils/programGenerator';
 import { getUserEquipment } from '../../src/db/repositories/equipment';
@@ -48,9 +48,7 @@ export default function WorkoutListScreen() {
     setRecentWorkouts(recents);
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useFocusEffect(useCallback(() => { loadData(); }, []));
 
   const handleGenerateProgram = async () => {
     setIsGenerating(true);
