@@ -266,15 +266,15 @@ export async function saveGeneratedProgram(
       const templateId = generateHexId();
 
       await db.runAsync(
-        `INSERT INTO workout_templates (id, name, split_type, created_at)
-         VALUES (?, ?, ?, ?)`,
+        `INSERT INTO workout_templates (id, name, split_type, is_generated, created_at)
+         VALUES (?, ?, ?, 1, ?)`,
         [templateId, day.name, day.splitType, new Date().toISOString()],
       );
 
       for (let i = 0; i < day.exercises.length; i++) {
         const ex = day.exercises[i];
         await db.runAsync(
-          `INSERT INTO template_exercises (id, template_id, exercise_id, sort_order, sets, reps, time_s, rest_s)
+          `INSERT INTO template_exercises (id, template_id, exercise_id, order_index, default_sets, default_reps, default_time_s, rest_seconds)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             generateHexId(),

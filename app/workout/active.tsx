@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Alert, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, Alert, SafeAreaView, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { X, SkipForward } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -24,20 +24,22 @@ const Colors = {
 export default function ActiveWorkoutScreen() {
   const router = useRouter();
   const { templateId, type } = useLocalSearchParams();
-  const { 
-    startWorkout, 
-    finishWorkout, 
-    exercises, 
-    sets, 
-    name, 
-    startedAt, 
-    completeSet, 
-    updateSet, 
-    addSet 
+  const {
+    startWorkout,
+    finishWorkout,
+    resetWorkout,
+    exercises,
+    sets,
+    name,
+    startedAt,
+    completeSet,
+    updateSet,
+    addSet
   } = useWorkoutStore();
   const { saveWorkout } = useSaveWorkout();
   const { seconds, totalSeconds, isRunning, startTimer, stopTimer, tick } = useTimerStore();
 
+  const listRef = useRef<FlatList>(null);
   const [clock, setClock] = useState('0:00');
   const [initDone, setInitDone] = useState(false);
 
@@ -104,8 +106,9 @@ export default function ActiveWorkoutScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'End', style: 'destructive', onPress: () => {
           stopTimer();
+          resetWorkout();
           router.replace('/(tabs)/workout');
-        } 
+        }
       }
     ]);
   };
@@ -143,6 +146,25 @@ export default function ActiveWorkoutScreen() {
     addSet(exerciseId);
   };
 
+  const handleSkipToNext = () => {
+    if (isRunning) stopTimer();
+
+    // Find last exercise where every set is done, then jump to first incomplete after it
+    const lastFullyDoneIdx = exercises.reduce((last, ex, idx) => {
+      const exSets = sets.filter((s) => s.exerciseId === ex.id);
+      return exSets.length > 0 && exSets.every((s) => s.completed) ? idx : last;
+    }, -1);
+
+    const nextIdx = exercises.findIndex(
+      (ex, idx) =>
+        idx > lastFullyDoneIdx && sets.some((s) => s.exerciseId === ex.id && !s.completed),
+    );
+
+    if (nextIdx >= 0) {
+      listRef.current?.scrollToIndex({ index: nextIdx, animated: true });
+    }
+  };
+
   // Calculate global progress
   const totalCompletedSets = sets.filter(s => s.completed).length;
   const progressPercent = sets.length > 0 ? (totalCompletedSets / sets.length) * 100 : 0;
@@ -160,7 +182,7 @@ export default function ActiveWorkoutScreen() {
             <Text style={styles.topSubtitle}>{clock}</Text>
             <Text style={styles.topTitle}>{name}</Text>
           </View>
-          <Pressable style={styles.topBtn}>
+          <Pressable style={styles.topBtn} onPress={handleSkipToNext}>
             <SkipForward size={20} color={Colors.onSurface} />
           </Pressable>
         </View>
@@ -170,9 +192,14 @@ export default function ActiveWorkoutScreen() {
       </View>
 
       <FlatList
+        ref={listRef}
         data={exercises}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        onScrollToIndexFailed={(info) => {
+            const offset = info.averageItemLength * info.index;
+            listRef.current?.scrollToOffset({ offset, animated: true });
+          }}
         renderItem={({ item, index }) => {
           const exerciseSets = sets.filter((s) => s.exerciseId === item.id);
           return (

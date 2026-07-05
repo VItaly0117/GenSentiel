@@ -181,7 +181,9 @@ export default function WorkoutListScreen() {
         {/* History */}
         <View style={styles.historyHeader}>
           <Text style={styles.sectionTitle}>RECENT HISTORY</Text>
-          <Text style={styles.viewAllText}>VIEW ALL</Text>
+          <Pressable onPress={() => router.push('/(tabs)/history')}>
+            <Text style={styles.viewAllText}>VIEW ALL</Text>
+          </Pressable>
         </View>
         {recentWorkouts.length === 0 ? (
           <Text style={styles.emptyHistory}>No recent workouts logged.</Text>
