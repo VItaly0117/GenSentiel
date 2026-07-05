@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Star } from 'lucide-react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { getDb } from '../../src/db/database';
 
 const Colors = {
@@ -18,6 +18,7 @@ const Colors = {
 };
 
 export default function HistoryScreen() {
+  const router = useRouter();
   const [filter, setFilter] = useState('All Time');
   const [stats, setStats] = useState({ sessions: 0, volume: 0, prs: 0, exercises: 0 });
   const [workouts, setWorkouts] = useState<any[]>([]);
@@ -140,7 +141,11 @@ export default function HistoryScreen() {
             <Text style={styles.emptyText}>No workout history found for this period.</Text>
           ) : (
             workouts.map((w) => (
-              <View key={w.id} style={styles.card}>
+              <Pressable
+                key={w.id}
+                style={styles.card}
+                onPress={() => router.push(`/workout/summary?workoutId=${w.id}`)}
+              >
                 <View style={styles.cardHeader}>
                   <View>
                     <View style={styles.cardTags}>
@@ -173,7 +178,7 @@ export default function HistoryScreen() {
                     </View>
                   )}
                 </View>
-              </View>
+              </Pressable>
             ))
           )}
         </View>
