@@ -82,24 +82,20 @@ export default function ActiveWorkoutScreen() {
     return () => clearInterval(interval);
   }, [startedAt]);
 
-  // Rest Timer ticking
+  // Rest Timer ticking + completion haptic
   useEffect(() => {
     if (!isRunning) return;
-    
+
     const interval = setInterval(() => {
+      const { seconds: current } = useTimerStore.getState();
       tick();
+      if (current === 1) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
     }, 1000);
 
     return () => clearInterval(interval);
   }, [isRunning]);
-
-  // Rest Timer completion
-  useEffect(() => {
-    if (isRunning && seconds === 0) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      stopTimer();
-    }
-  }, [isRunning, seconds]);
 
   const handleEnd = () => {
     Alert.alert('End Mission?', 'Are you sure you want to end this workout?', [
