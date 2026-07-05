@@ -18,15 +18,38 @@ const Colors = {
   onSurfaceVariant: '#c4c9ac',
 };
 
+const FILTERS = ['All', 'Full Body', 'Upper', 'Lower'];
+const FILTER_SPLIT_MAP: Record<string, string> = {
+  'Full Body': 'full_body',
+  'Upper': 'upper',
+  'Lower': 'lower',
+};
+
 export default function WorkoutListScreen() {
   const router = useRouter();
+  const [allTemplates, setAllTemplates] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   const [recentWorkouts, setRecentWorkouts] = useState<any[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const applyFilters = (all: any[], filter: string, search: string) => {
+    let filtered = all;
+    if (filter !== 'All') {
+      const split = FILTER_SPLIT_MAP[filter];
+      if (split) filtered = filtered.filter((t) => t.split_type === split);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter((t) => t.name.toLowerCase().includes(q));
+    }
+    setTemplates(filtered);
+  };
 
   const loadData = () => {
     const db = getDb();
-    
+
     // Load templates
     const tmpls = db.getAllSync(`
       SELECT t.*, COUNT(te.id) as exerciseCount
@@ -35,7 +58,8 @@ export default function WorkoutListScreen() {
       GROUP BY t.id
       ORDER BY t.is_generated DESC, t.created_at DESC
     `);
-    setTemplates(tmpls);
+    setAllTemplates(tmpls);
+    applyFilters(tmpls, activeFilter, searchQuery);
 
     // Load recent workouts
     const recents = db.getAllSync(`
@@ -106,20 +130,30 @@ export default function WorkoutListScreen() {
             style={styles.searchInput}
             placeholder="Search programs..."
             placeholderTextColor={Colors.onSurfaceVariant}
+            value={searchQuery}
+            onChangeText={(q) => {
+              setSearchQuery(q);
+              applyFilters(allTemplates, activeFilter, q);
+            }}
           />
         </View>
 
         {/* Filters */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
-          <Pressable style={[styles.filterChip, styles.filterChipActive]}>
-            <Text style={styles.filterChipTextActive}>All</Text>
-          </Pressable>
-          <Pressable style={styles.filterChip}>
-            <Text style={styles.filterChipText}>Hypertrophy</Text>
-          </Pressable>
-          <Pressable style={styles.filterChip}>
-            <Text style={styles.filterChipText}>Strength</Text>
-          </Pressable>
+          {FILTERS.map((f) => (
+            <Pressable
+              key={f}
+              style={[styles.filterChip, activeFilter === f && styles.filterChipActive]}
+              onPress={() => {
+                setActiveFilter(f);
+                applyFilters(allTemplates, f, searchQuery);
+              }}
+            >
+              <Text style={activeFilter === f ? styles.filterChipTextActive : styles.filterChipText}>
+                {f}
+              </Text>
+            </Pressable>
+          ))}
         </ScrollView>
 
         {/* Templates */}
