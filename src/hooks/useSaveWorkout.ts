@@ -51,8 +51,8 @@ export function useSaveWorkout() {
 
       for (const s of completedSets) {
         await db.runAsync(
-          `INSERT INTO workout_sets (id, workout_id, exercise_id, set_number, weight_kg, reps, time_s, band_level, is_warmup)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO workout_sets (id, workout_id, exercise_id, set_number, weight_kg, reps, time_s, band_level, is_warmup, completed, completed_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
           [
             hexId(),
             workoutId,
@@ -63,6 +63,7 @@ export function useSaveWorkout() {
             s.timeS ?? null,
             s.bandLevel ?? null,
             s.isWarmup ? 1 : 0,
+            new Date().toISOString(),
           ],
         );
       }

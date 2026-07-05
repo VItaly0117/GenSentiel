@@ -32,8 +32,9 @@ export default function HistoryScreen() {
     let dateFilter = '';
     const now = new Date();
     if (filter === 'This Month') {
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      dateFilter = `AND w.started_at >= '${firstDay}'`;
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      dateFilter = `AND w.started_at >= '${y}-${m}-01'`;
     }
 
     // Load Stats
