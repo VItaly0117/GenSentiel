@@ -129,7 +129,10 @@ export default function WorkoutSummaryScreen() {
         </View>
       )}
 
-      <Pressable style={styles.returnBtn} onPress={() => router.replace('/(tabs)/workout')}>
+      <Pressable
+        style={styles.returnBtn}
+        onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/workout')}
+      >
         <Text style={styles.returnBtnText}>RETURN TO HQ</Text>
       </Pressable>
     </ScrollView>
