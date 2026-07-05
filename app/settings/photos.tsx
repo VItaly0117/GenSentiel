@@ -43,13 +43,10 @@ export default function ProgressPhotosScreen() {
       const items = dir.list();
       const loaded = items
         .filter((item): item is File => item instanceof File)
-        .map(file => {
+        .flatMap(file => {
           const timestamp = parseInt(file.name.split('.')[0]);
-          return {
-            id: file.name,
-            uri: file.uri,
-            date: new Date(timestamp).toISOString(),
-          };
+          if (isNaN(timestamp)) return [];
+          return [{ id: file.name, uri: file.uri, date: new Date(timestamp).toISOString() }];
         });
 
       loaded.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
