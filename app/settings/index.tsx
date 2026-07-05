@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Switch, Pressable, ScrollView, SafeAreaView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CloudOff, Cloud, Bell, Moon, Database, Shield, Download, ChevronLeft, HelpCircle, Camera } from 'lucide-react-native';
+import { getDb } from '../../src/db/database';
 
 const Colors = {
   black: '#000000',
@@ -36,7 +37,25 @@ export default function SettingsScreen() {
       "Are you sure you want to delete all local workout and telemetry data? This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Purge", style: "destructive" }
+        {
+          text: "Purge",
+          style: "destructive",
+          onPress: () => {
+            try {
+              const db = getDb();
+              db.execSync(`
+                DELETE FROM workout_sets;
+                DELETE FROM workouts;
+                DELETE FROM nutrition_logs;
+                DELETE FROM body_metrics;
+              `);
+              Alert.alert("Done", "All training data has been purged.");
+            } catch (e) {
+              console.error("Purge failed", e);
+              Alert.alert("Error", "Failed to purge data.");
+            }
+          },
+        },
       ]
     );
   };
