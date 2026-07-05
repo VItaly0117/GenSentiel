@@ -100,10 +100,11 @@ export default function ProgressPhotosScreen() {
           try {
             const file = new File(uri);
             if (file.exists) file.delete();
+            loadPhotos();
           } catch (e) {
             console.error('Failed to delete photo', e);
+            Alert.alert('Error', 'Failed to delete photo. Please try again.');
           }
-          loadPhotos();
         },
       },
     ]);

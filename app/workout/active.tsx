@@ -24,16 +24,17 @@ const Colors = {
 export default function ActiveWorkoutScreen() {
   const router = useRouter();
   const { templateId, type } = useLocalSearchParams();
-  const { 
-    startWorkout, 
-    finishWorkout, 
-    exercises, 
-    sets, 
-    name, 
-    startedAt, 
-    completeSet, 
-    updateSet, 
-    addSet 
+  const {
+    startWorkout,
+    finishWorkout,
+    resetWorkout,
+    exercises,
+    sets,
+    name,
+    startedAt,
+    completeSet,
+    updateSet,
+    addSet
   } = useWorkoutStore();
   const { saveWorkout } = useSaveWorkout();
   const { seconds, totalSeconds, isRunning, startTimer, stopTimer, tick } = useTimerStore();
@@ -105,8 +106,9 @@ export default function ActiveWorkoutScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'End', style: 'destructive', onPress: () => {
           stopTimer();
+          resetWorkout();
           router.replace('/(tabs)/workout');
-        } 
+        }
       }
     ]);
   };
@@ -145,14 +147,21 @@ export default function ActiveWorkoutScreen() {
   };
 
   const handleSkipToNext = () => {
-    if (isRunning) {
-      stopTimer();
-    }
-    const firstIncompleteIdx = exercises.findIndex((ex) =>
-      sets.some((s) => s.exerciseId === ex.id && !s.completed),
+    if (isRunning) stopTimer();
+
+    // Find last exercise where every set is done, then jump to first incomplete after it
+    const lastFullyDoneIdx = exercises.reduce((last, ex, idx) => {
+      const exSets = sets.filter((s) => s.exerciseId === ex.id);
+      return exSets.length > 0 && exSets.every((s) => s.completed) ? idx : last;
+    }, -1);
+
+    const nextIdx = exercises.findIndex(
+      (ex, idx) =>
+        idx > lastFullyDoneIdx && sets.some((s) => s.exerciseId === ex.id && !s.completed),
     );
-    if (firstIncompleteIdx >= 0) {
-      listRef.current?.scrollToIndex({ index: firstIncompleteIdx, animated: true });
+
+    if (nextIdx >= 0) {
+      listRef.current?.scrollToIndex({ index: nextIdx, animated: true });
     }
   };
 
@@ -187,7 +196,10 @@ export default function ActiveWorkoutScreen() {
         data={exercises}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
-        onScrollToIndexFailed={() => {}}
+        onScrollToIndexFailed={(info) => {
+            const offset = info.averageItemLength * info.index;
+            listRef.current?.scrollToOffset({ offset, animated: true });
+          }}
         renderItem={({ item, index }) => {
           const exerciseSets = sets.filter((s) => s.exerciseId === item.id);
           return (
