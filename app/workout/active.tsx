@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Alert, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { X, SkipForward } from 'lucide-react-native';
+import { X, SkipForward, Plus } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import { getDb } from '../../src/db/database';
@@ -182,9 +182,14 @@ export default function ActiveWorkoutScreen() {
             <Text style={styles.topSubtitle}>{clock}</Text>
             <Text style={styles.topTitle}>{name}</Text>
           </View>
-          <Pressable style={styles.topBtn} onPress={handleSkipToNext}>
-            <SkipForward size={20} color={Colors.onSurface} />
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <Pressable style={styles.topBtn} onPress={() => router.push('/workout/exercise-picker')}>
+              <Plus size={20} color={Colors.onSurface} />
+            </Pressable>
+            <Pressable style={styles.topBtn} onPress={handleSkipToNext}>
+              <SkipForward size={20} color={Colors.onSurface} />
+            </Pressable>
+          </View>
         </View>
         <View style={styles.progressBarBg}>
           <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
@@ -214,6 +219,15 @@ export default function ActiveWorkoutScreen() {
             />
           );
         }}
+        ListEmptyComponent={
+          <Pressable
+            style={styles.emptyState}
+            onPress={() => router.push('/workout/exercise-picker')}
+          >
+            <Plus size={28} color={Colors.primaryContainer} />
+            <Text style={styles.emptyStateText}>TAP TO ADD EXERCISES</Text>
+          </Pressable>
+        }
         ListFooterComponent={
           <Pressable style={styles.completeBtn} onPress={handleCompleteMission}>
             <Text style={styles.completeBtnText}>COMPLETE MISSION</Text>
@@ -290,6 +304,23 @@ const styles = StyleSheet.create({
   listContent: {
     padding: 20,
     paddingBottom: 180,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    gap: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(195, 244, 0, 0.3)',
+    borderStyle: 'dashed',
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  emptyStateText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+    color: Colors.primaryContainer,
+    letterSpacing: 2,
   },
   completeBtn: {
     backgroundColor: Colors.primaryContainer,
