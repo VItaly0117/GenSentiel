@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView } from 'react-native';
-import { Plus, Coffee, Utensils, UtensilsCrossed, Apple } from 'lucide-react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { Plus, Coffee, Utensils, UtensilsCrossed, Apple, X } from 'lucide-react-native';
+import { useFocusEffect } from 'expo-router';
 import { MacroRing } from '../../src/components/nutrition/MacroRing';
 import { getDayNutrition, addNutritionLog, NutritionLog } from '../../src/db/repositories/nutrition';
 
@@ -17,10 +18,19 @@ const Colors = {
   cardBorder: 'rgba(195, 244, 0, 0.3)',
 };
 
+const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
+type MealType = typeof MEAL_TYPES[number];
+
 export default function NutritionScreen() {
   const [logs, setLogs] = useState<NutritionLog[]>([]);
-  
-  // Goals (Normally from user_settings)
+  const [showModal, setShowModal] = useState(false);
+  const [mealType, setMealType] = useState<MealType>('breakfast');
+  const [foodName, setFoodName] = useState('');
+  const [calories, setCalories] = useState('');
+  const [protein, setProtein] = useState('');
+  const [carbs, setCarbs] = useState('');
+  const [fat, setFat] = useState('');
+
   const GOALS = {
     calories: 2500,
     protein: 160,
@@ -34,24 +44,31 @@ export default function NutritionScreen() {
     setLogs(data);
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useFocusEffect(useCallback(() => { loadData(); }, []));
 
-  const handleAddDummyFood = () => {
+  const openAddFood = () => {
+    setFoodName('');
+    setCalories('');
+    setProtein('');
+    setCarbs('');
+    setFat('');
+    setMealType('breakfast');
+    setShowModal(true);
+  };
+
+  const handleSaveFood = () => {
+    if (!foodName.trim() || !calories) return;
     const today = new Date().toISOString().split('T')[0];
-    const meals = ['breakfast', 'lunch', 'dinner', 'snack'];
-    const randomMeal = meals[Math.floor(Math.random() * meals.length)];
-    
     addNutritionLog(
-      today, 
-      randomMeal, 
-      'Chicken Breast & Rice', 
-      350, // kcal
-      45, // protein
-      5, // fat
-      30 // carbs
+      today,
+      mealType,
+      foodName.trim(),
+      parseFloat(calories) || 0,
+      parseFloat(protein) || 0,
+      parseFloat(fat) || 0,
+      parseFloat(carbs) || 0,
     );
+    setShowModal(false);
     loadData();
   };
 
@@ -144,9 +161,76 @@ export default function NutritionScreen() {
       </ScrollView>
 
       {/* FAB */}
-      <Pressable style={styles.fab} onPress={handleAddDummyFood}>
+      <Pressable style={styles.fab} onPress={openAddFood}>
         <Plus size={24} color={Colors.black} />
       </Pressable>
+
+      {/* Add Food Modal */}
+      <Modal visible={showModal} transparent animationType="slide" onRequestClose={() => setShowModal(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>LOG FOOD</Text>
+              <Pressable onPress={() => setShowModal(false)}>
+                <X size={20} color={Colors.onSurfaceVariant} />
+              </Pressable>
+            </View>
+
+            {/* Meal Type Picker */}
+            <View style={styles.mealPicker}>
+              {MEAL_TYPES.map((m) => (
+                <Pressable
+                  key={m}
+                  style={[styles.mealChip, mealType === m && styles.mealChipActive]}
+                  onPress={() => setMealType(m)}
+                >
+                  <Text style={[styles.mealChipText, mealType === m && styles.mealChipTextActive]}>
+                    {m.charAt(0).toUpperCase() + m.slice(1)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={styles.inputLabel}>FOOD NAME *</Text>
+            <TextInput
+              style={styles.input}
+              value={foodName}
+              onChangeText={setFoodName}
+              placeholder="e.g. Chicken Breast"
+              placeholderTextColor={Colors.onSurfaceVariant}
+            />
+
+            <Text style={styles.inputLabel}>CALORIES (KCAL) *</Text>
+            <TextInput
+              style={styles.input}
+              value={calories}
+              onChangeText={setCalories}
+              keyboardType="decimal-pad"
+              placeholder="e.g. 350"
+              placeholderTextColor={Colors.onSurfaceVariant}
+            />
+
+            <View style={styles.macroRow}>
+              <View style={styles.macroField}>
+                <Text style={styles.inputLabel}>PROTEIN (G)</Text>
+                <TextInput style={styles.input} value={protein} onChangeText={setProtein} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={Colors.onSurfaceVariant} />
+              </View>
+              <View style={styles.macroField}>
+                <Text style={styles.inputLabel}>CARBS (G)</Text>
+                <TextInput style={styles.input} value={carbs} onChangeText={setCarbs} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={Colors.onSurfaceVariant} />
+              </View>
+              <View style={styles.macroField}>
+                <Text style={styles.inputLabel}>FAT (G)</Text>
+                <TextInput style={styles.input} value={fat} onChangeText={setFat} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={Colors.onSurfaceVariant} />
+              </View>
+            </View>
+
+            <Pressable style={[styles.saveButton, (!foodName.trim() || !calories) && styles.saveButtonDisabled]} onPress={handleSaveFood}>
+              <Text style={styles.saveButtonText}>ADD FOOD</Text>
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -293,5 +377,98 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.6,
     shadowRadius: 12,
     elevation: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  modalSheet: {
+    backgroundColor: Colors.surfaceContainerLow,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.surfaceVariant,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 18,
+    color: '#ffffff',
+    letterSpacing: 1,
+  },
+  mealPicker: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 20,
+  },
+  mealChip: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.surfaceVariant,
+    alignItems: 'center',
+  },
+  mealChipActive: {
+    backgroundColor: Colors.primaryContainer,
+    borderColor: Colors.primaryContainer,
+  },
+  mealChipText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 10,
+    color: Colors.onSurfaceVariant,
+  },
+  mealChipTextActive: {
+    color: Colors.black,
+  },
+  inputLabel: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 10,
+    color: Colors.onSurfaceVariant,
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  input: {
+    backgroundColor: '#111111',
+    borderWidth: 1,
+    borderColor: Colors.surfaceVariant,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: '#ffffff',
+    fontFamily: 'Inter_400Regular',
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  macroRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  macroField: {
+    flex: 1,
+  },
+  saveButton: {
+    backgroundColor: Colors.primaryContainer,
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  saveButtonDisabled: {
+    opacity: 0.4,
+  },
+  saveButtonText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+    color: Colors.black,
+    letterSpacing: 1.5,
   },
 });

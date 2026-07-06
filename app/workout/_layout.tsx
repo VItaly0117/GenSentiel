@@ -8,6 +8,13 @@ export default function WorkoutLayout() {
         animation: 'slide_from_bottom',
         contentStyle: { backgroundColor: '#000000' },
       }}
-    />
+    >
+      <Stack.Screen name="active" />
+      <Stack.Screen name="summary" />
+      <Stack.Screen
+        name="exercise-picker"
+        options={{ animation: 'slide_from_right' }}
+      />
+    </Stack>
   );
 }

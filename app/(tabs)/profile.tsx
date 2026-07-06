@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView } from 'react-native';
-import { Activity, Scaling, Ruler, Expand, Plus, Settings } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { Activity, Scaling, Ruler, Expand, Plus, Settings, X } from 'lucide-react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { getBodyMetricsHistory, saveBodyMetrics, BodyMetric } from '../../src/db/repositories/nutrition';
 
@@ -23,6 +23,12 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [history, setHistory] = useState<BodyMetric[]>([]);
   const [current, setCurrent] = useState<BodyMetric | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [weightInput, setWeightInput] = useState('');
+  const [bodyFatInput, setBodyFatInput] = useState('');
+  const [waistInput, setWaistInput] = useState('');
+  const [chestInput, setChestInput] = useState('');
+  const [armsInput, setArmsInput] = useState('');
 
   const loadData = () => {
     const data = getBodyMetricsHistory(30);
@@ -30,20 +36,27 @@ export default function ProfileScreen() {
     setCurrent(data.length > 0 ? data[data.length - 1] : null);
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useFocusEffect(useCallback(() => { loadData(); }, []));
 
-  const handleLogDummy = () => {
+  const openLog = () => {
+    setWeightInput(current?.weight_kg?.toString() ?? '');
+    setBodyFatInput(current?.body_fat_pct?.toString() ?? '');
+    setWaistInput(current?.waist_cm?.toString() ?? '');
+    setChestInput(current?.chest_cm?.toString() ?? '');
+    setArmsInput(current?.arms_cm?.toString() ?? '');
+    setShowModal(true);
+  };
+
+  const handleSave = () => {
     const today = new Date().toISOString().split('T')[0];
-    const prevWeight = current?.weight_kg || 80.5;
-    const w = prevWeight + (Math.random() - 0.5); // Random fluctuation
     saveBodyMetrics(today, {
-      weight_kg: parseFloat(w.toFixed(1)),
-      body_fat_pct: 14.2,
-      waist_cm: 82.5,
-      chest_cm: 104.0,
+      weight_kg: parseFloat(weightInput) || undefined,
+      body_fat_pct: parseFloat(bodyFatInput) || undefined,
+      waist_cm: parseFloat(waistInput) || undefined,
+      chest_cm: parseFloat(chestInput) || undefined,
+      arms_cm: parseFloat(armsInput) || undefined,
     });
+    setShowModal(false);
     loadData();
   };
 
@@ -97,7 +110,7 @@ export default function ProfileScreen() {
         <View style={styles.headerRow}>
           <Text style={styles.title}>BODY METRICS</Text>
           <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-            <Pressable style={styles.logButton} onPress={handleLogDummy}>
+            <Pressable style={styles.logButton} onPress={openLog}>
               <Plus size={16} color={Colors.black} />
               <Text style={styles.logButtonText}>LOG TODAY</Text>
             </Pressable>
@@ -164,6 +177,79 @@ export default function ProfileScreen() {
         </View>
 
       </ScrollView>
+
+      {/* Log Body Metrics Modal */}
+      <Modal visible={showModal} transparent animationType="slide" onRequestClose={() => setShowModal(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>LOG METRICS</Text>
+              <Pressable onPress={() => setShowModal(false)}>
+                <X size={20} color={Colors.onSurfaceVariant} />
+              </Pressable>
+            </View>
+
+            <Text style={styles.inputLabel}>WEIGHT (KG)</Text>
+            <TextInput
+              style={styles.input}
+              value={weightInput}
+              onChangeText={setWeightInput}
+              keyboardType="decimal-pad"
+              placeholder="e.g. 80.5"
+              placeholderTextColor={Colors.onSurfaceVariant}
+            />
+
+            <Text style={styles.inputLabel}>BODY FAT (%)</Text>
+            <TextInput
+              style={styles.input}
+              value={bodyFatInput}
+              onChangeText={setBodyFatInput}
+              keyboardType="decimal-pad"
+              placeholder="e.g. 18.0"
+              placeholderTextColor={Colors.onSurfaceVariant}
+            />
+
+            <Text style={styles.inputLabel}>WAIST (CM)</Text>
+            <TextInput
+              style={styles.input}
+              value={waistInput}
+              onChangeText={setWaistInput}
+              keyboardType="decimal-pad"
+              placeholder="e.g. 85"
+              placeholderTextColor={Colors.onSurfaceVariant}
+            />
+
+            <View style={styles.modalRow}>
+              <View style={styles.modalHalf}>
+                <Text style={styles.inputLabel}>CHEST (CM)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={chestInput}
+                  onChangeText={setChestInput}
+                  keyboardType="decimal-pad"
+                  placeholder="e.g. 104"
+                  placeholderTextColor={Colors.onSurfaceVariant}
+                />
+              </View>
+              <View style={styles.modalHalf}>
+                <Text style={styles.inputLabel}>ARMS (CM)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={armsInput}
+                  onChangeText={setArmsInput}
+                  keyboardType="decimal-pad"
+                  placeholder="e.g. 38"
+                  placeholderTextColor={Colors.onSurfaceVariant}
+                />
+              </View>
+            </View>
+
+            <Pressable style={styles.saveButton} onPress={handleSave}>
+              <Text style={styles.saveButtonText}>SAVE METRICS</Text>
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -325,5 +411,70 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 24,
     color: '#ffffff',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  modalSheet: {
+    backgroundColor: Colors.surfaceContainerLow,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 18,
+    color: '#ffffff',
+    letterSpacing: 1,
+  },
+  inputLabel: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 10,
+    color: Colors.onSurfaceVariant,
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  input: {
+    backgroundColor: Colors.cardBg,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: '#ffffff',
+    fontFamily: 'Inter_400Regular',
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  modalRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalHalf: {
+    flex: 1,
+  },
+  saveButton: {
+    backgroundColor: Colors.primaryContainer,
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  saveButtonText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+    color: Colors.black,
+    letterSpacing: 1.5,
   },
 });

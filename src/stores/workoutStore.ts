@@ -43,6 +43,7 @@ interface WorkoutState {
   ) => void;
   addSet: (exerciseId: string) => void;
   removeSet: (exerciseId: string, setNumber: number) => void;
+  addExercise: (exercise: ExerciseInfo) => void;
   finishWorkout: () => void;
   resetWorkout: () => void;
 }
@@ -190,6 +191,17 @@ export const useWorkoutStore = create<WorkoutState>()((set) => ({
       });
 
       return { sets: renumbered };
+    });
+  },
+
+  addExercise: (exercise) => {
+    set((state) => {
+      if (state.exercises.some((e) => e.id === exercise.id)) return state;
+      const newSets = buildDefaultSets([exercise]);
+      return {
+        exercises: [...state.exercises, exercise],
+        sets: [...state.sets, ...newSets],
+      };
     });
   },
 
