@@ -2,6 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Lightbulb } from 'lucide-react-native';
 import { SetRow } from './SetRow';
+import { MovementAnimation } from './MovementAnimation';
+import type { MovementPattern } from '../../utils/movementPattern';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const Colors = {
   black: '#000000',
@@ -19,6 +22,7 @@ const Colors = {
 interface ExerciseCardProps {
   exerciseName: string;
   muscleGroup: string;
+  movementPattern: MovementPattern;
   setType: 'weight_reps' | 'reps_only' | 'timed' | 'band_reps';
   sets: Array<{
     setNumber: number;
@@ -38,6 +42,7 @@ interface ExerciseCardProps {
 export function ExerciseCard({
   exerciseName,
   muscleGroup,
+  movementPattern,
   setType,
   sets,
   previousBest,
@@ -46,20 +51,23 @@ export function ExerciseCard({
   onCompleteSet,
   onAddSet,
 }: ExerciseCardProps) {
+  const { t } = useTranslation();
   // Find the first uncompleted set to mark as active
   const activeSetNumber = sets.find((s) => !s.completed)?.setNumber;
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
+        <MovementAnimation pattern={movementPattern} size={64} />
+
         <View style={styles.titleContainer}>
           <Text style={styles.title}>{exerciseName}</Text>
-          <Text style={styles.subtitle}>{muscleGroup} Focus</Text>
+          <Text style={styles.subtitle}>{t('exerciseCard.focusLabel', { group: muscleGroup })}</Text>
         </View>
-        
+
         {previousBest && (
           <View style={styles.prevBadge}>
-            <Text style={styles.prevBadgeLabel}>PREV BEST</Text>
+            <Text style={styles.prevBadgeLabel}>{t('exerciseCard.prevBest')}</Text>
             <Text style={styles.prevBadgeValue}>{previousBest}</Text>
           </View>
         )}
@@ -73,10 +81,10 @@ export function ExerciseCard({
       )}
 
       <View style={styles.tableHeader}>
-        <Text style={[styles.th, { flex: 2 }]}>SET</Text>
-        <Text style={[styles.th, { flex: 3 }]}>LOAD</Text>
-        <Text style={[styles.th, { flex: 3 }]}>REPS</Text>
-        <Text style={[styles.th, { flex: 2 }]}>DONE</Text>
+        <Text style={[styles.th, { flex: 2 }]}>{t('exerciseCard.set')}</Text>
+        <Text style={[styles.th, { flex: 3 }]}>{t('exerciseCard.load')}</Text>
+        <Text style={[styles.th, { flex: 3 }]}>{t('exerciseCard.reps')}</Text>
+        <Text style={[styles.th, { flex: 2 }]}>{t('exerciseCard.done')}</Text>
       </View>
 
       <View style={styles.setsContainer}>
@@ -101,7 +109,7 @@ export function ExerciseCard({
       </View>
 
       <Pressable style={styles.addButton} onPress={onAddSet}>
-        <Text style={styles.addButtonText}>+ ADD SET</Text>
+        <Text style={styles.addButtonText}>{t('exerciseCard.addSet')}</Text>
       </Pressable>
     </View>
   );
@@ -119,7 +127,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    gap: 12,
     marginBottom: 16,
   },
   titleContainer: {

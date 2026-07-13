@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
 import { Minus, Plus } from 'lucide-react-native';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const Colors = {
   black: '#000000',
@@ -31,6 +32,7 @@ export function RestTimerFloat({
   onSkip,
   onAdd30,
 }: RestTimerFloatProps) {
+  const { t } = useTranslation();
   const translateY = useSharedValue(200);
   const opacity = useSharedValue(0);
 
@@ -59,9 +61,9 @@ export function RestTimerFloat({
 
   return (
     <Animated.View style={[styles.container, animatedStyle]} pointerEvents={visible ? 'auto' : 'none'}>
-      <Text style={styles.label}>REST TIMER</Text>
+      <Text style={styles.label}>{t('restTimer.label')}</Text>
       <Text style={styles.timer}>{formatTime(seconds)}</Text>
-      
+
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${progress}%` }]} />
       </View>
@@ -72,7 +74,7 @@ export function RestTimerFloat({
           <Text style={styles.buttonText}>10s</Text>
         </Pressable>
         <Pressable style={styles.button} onPress={onSkip}>
-          <Text style={styles.buttonText}>SKIP</Text>
+          <Text style={styles.buttonText}>{t('restTimer.skip')}</Text>
         </Pressable>
         <Pressable style={styles.button} onPress={onAdd30}>
           <Plus size={16} color={Colors.onSurface} />
@@ -86,7 +88,7 @@ export function RestTimerFloat({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 108,
     left: 20,
     right: 20,
     backgroundColor: Colors.surfaceContainer,

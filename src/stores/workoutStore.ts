@@ -19,6 +19,8 @@ interface ExerciseInfo {
   nameRu: string;
   setType: 'weight_reps' | 'reps_only' | 'timed' | 'band_reps';
   muscleGroup: string;
+  instructions?: string | null;
+  instructionsRu?: string | null;
 }
 
 interface WorkoutState {

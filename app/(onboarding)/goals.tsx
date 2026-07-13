@@ -10,26 +10,27 @@ import {
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
-  User,
   Dumbbell,
-  SquareStack,
-  Cable,
-  Circle,
-  ArrowUpFromDot,
-  Armchair,
-  Radar,
+  TrendingUp,
+  Flame,
+  HeartPulse,
   ArrowRight,
   ArrowLeft,
   CheckCircle2,
+  Cpu,
 } from 'lucide-react-native';
-import { saveUserEquipment } from '../../src/db/repositories/equipment';
-import type { EquipmentKey } from '../../src/types';
+import {
+  saveUserGoal,
+  setOnboardingCompleted,
+  getUserEquipment,
+} from '../../src/db/repositories/equipment';
+import { generateProgram, saveGeneratedProgram } from '../../src/utils/programGenerator';
+import type { TrainingGoal } from '../../src/types';
 import { useTranslation } from '../../src/i18n/useTranslation';
 import { haptics } from '../../src/utils/haptics';
 
 const Colors = {
   black: '#000000',
-  surface: '#121414',
   surfaceContainerLow: '#1a1c1c',
   surfaceContainer: '#1e2020',
   surfaceVariant: '#333535',
@@ -43,52 +44,69 @@ const Colors = {
   neonGlow: 'rgba(171, 214, 0, 0.4)',
 };
 
-interface EquipmentOption {
-  key: EquipmentKey;
+interface GoalOption {
+  key: TrainingGoal;
+  labelKey: string;
+  descKey: string;
   icon: React.ReactNode;
 }
 
-const EQUIPMENT_OPTIONS: EquipmentOption[] = [
-  { key: 'bodyweight', icon: <User size={40} color="#ffffff" /> },
-  { key: 'dumbbells', icon: <Dumbbell size={40} color="#ffffff" /> },
-  { key: 'mat', icon: <SquareStack size={40} color="#ffffff" /> },
-  { key: 'bands', icon: <Cable size={40} color="#ffffff" /> },
-  { key: 'pullup_bar', icon: <ArrowUpFromDot size={40} color="#ffffff" /> },
-  { key: 'bench', icon: <Armchair size={40} color="#ffffff" /> },
-  { key: 'kettlebell', icon: <Circle size={40} color="#ffffff" /> },
+const GOAL_OPTIONS: GoalOption[] = [
+  {
+    key: 'strength',
+    labelKey: 'strengthLabel',
+    descKey: 'strengthDesc',
+    icon: <Dumbbell size={32} color="#ffffff" />,
+  },
+  {
+    key: 'hypertrophy',
+    labelKey: 'hypertrophyLabel',
+    descKey: 'hypertrophyDesc',
+    icon: <TrendingUp size={32} color="#ffffff" />,
+  },
+  {
+    key: 'fat_loss',
+    labelKey: 'fatLossLabel',
+    descKey: 'fatLossDesc',
+    icon: <Flame size={32} color="#ffffff" />,
+  },
+  {
+    key: 'general_fitness',
+    labelKey: 'generalLabel',
+    descKey: 'generalDesc',
+    icon: <HeartPulse size={32} color="#ffffff" />,
+  },
 ];
 
-export default function EquipmentScreen() {
+export default function GoalsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const [selected, setSelected] = useState<Set<EquipmentKey>>(
-    new Set(['bodyweight'])
-  );
+  const [selected, setSelected] = useState<TrainingGoal>('general_fitness');
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const toggleEquipment = (key: EquipmentKey) => {
-    haptics.impact(Haptics.ImpactFeedbackStyle.Light);
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        // Don't allow deselecting bodyweight
-        if (key === 'bodyweight') return prev;
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  };
-
-  const handleContinue = () => {
+  const handleContinue = async () => {
+    setIsGenerating(true);
     try {
-      const equipment = Array.from(selected);
-      saveUserEquipment(equipment);
-      haptics.impact(Haptics.ImpactFeedbackStyle.Light);
-      router.push('/(onboarding)/goals');
+      saveUserGoal(selected);
+      setOnboardingCompleted();
+
+      // Auto-compose a first training protocol from equipment + goal
+      const equipment = getUserEquipment();
+      const generatedDays = await generateProgram({
+        equipment,
+        splitType: 'full_body',
+        difficulty: 3,
+        daysPerWeek: 3,
+        goal: selected,
+      });
+      await saveGeneratedProgram(generatedDays);
+
+      haptics.notification(Haptics.NotificationFeedbackType.Success);
+      router.replace('/(tabs)');
     } catch (error) {
-      console.error('[Equipment] Save error:', error);
-      Alert.alert(t('common.error'), 'Failed to save equipment configuration.');
+      console.error('[Goals] Save/generate error:', error);
+      Alert.alert(t('common.error'), 'Failed to generate your training protocol.');
+      setIsGenerating(false);
     }
   };
 
@@ -96,16 +114,13 @@ export default function EquipmentScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} color={Colors.onSurface} />
         </Pressable>
 
         <View style={styles.progressDots}>
-          <View style={styles.dotActive} />
           <View style={styles.dotInactive} />
+          <View style={styles.dotActive} />
         </View>
 
         <View style={{ width: 40 }} />
@@ -118,74 +133,62 @@ export default function EquipmentScreen() {
       >
         {/* Title Section */}
         <View style={styles.titleSection}>
-          <Text style={styles.labelText}>
-            {t('onboarding.equipment.label')}
-          </Text>
-          <Text style={styles.headlineText}>{t('onboarding.equipment.headline')}</Text>
+          <Text style={styles.labelText}>{t('onboarding.goals.label')}</Text>
+          <Text style={styles.headlineText}>{t('onboarding.goals.headline')}</Text>
           <Text style={styles.descText}>
-            Select the hardware currently available in your environment to
-            generate optimal training protocols.
+            This tunes rep ranges, rest timers, and exercise volume for every
+            protocol GenSentiel generates for you.
           </Text>
         </View>
 
-        {/* Equipment Grid */}
-        <View style={styles.grid}>
-          {EQUIPMENT_OPTIONS.map((item) => {
-            const isSelected = selected.has(item.key);
+        {/* Goal List */}
+        <View style={styles.list}>
+          {GOAL_OPTIONS.map((item) => {
+            const isSelected = selected === item.key;
             return (
               <Pressable
                 key={item.key}
-                style={[
-                  styles.card,
-                  isSelected && styles.cardSelected,
-                ]}
-                onPress={() => toggleEquipment(item.key)}
+                style={[styles.card, isSelected && styles.cardSelected]}
+                onPress={() => {
+                  haptics.impact(Haptics.ImpactFeedbackStyle.Light);
+                  setSelected(item.key);
+                }}
               >
-                {isSelected && (
-                  <View style={styles.checkIcon}>
-                    <CheckCircle2
-                      size={18}
-                      color={Colors.primaryFixedDim}
-                      fill={Colors.primaryFixedDim}
-                    />
-                  </View>
-                )}
-
                 <View
-                  style={[
-                    styles.iconContainer,
-                    !isSelected && { opacity: 0.5 },
-                  ]}
+                  style={[styles.iconContainer, !isSelected && { opacity: 0.5 }]}
                 >
                   {item.icon}
                 </View>
 
-                <Text
-                  style={[
-                    styles.cardLabel,
-                    !isSelected && styles.cardLabelMuted,
-                  ]}
-                >
-                  {t(`onboarding.equipment.${item.key}`)}
-                </Text>
+                <View style={styles.cardTextContainer}>
+                  <Text
+                    style={[styles.cardLabel, !isSelected && styles.cardLabelMuted]}
+                  >
+                    {t(`onboarding.goals.${item.labelKey}`)}
+                  </Text>
+                  <Text style={styles.cardDesc}>{t(`onboarding.goals.${item.descKey}`)}</Text>
+                </View>
+
+                {isSelected && (
+                  <CheckCircle2
+                    size={22}
+                    color={Colors.primaryFixedDim}
+                    fill={Colors.primaryFixedDim}
+                  />
+                )}
               </Pressable>
             );
           })}
         </View>
 
-        {/* Environmental Scan Decorative */}
+        {/* Decorative */}
         <View style={styles.scanCard}>
           <View style={styles.scanContent}>
-            <Radar size={24} color={Colors.secondaryFixedDim} />
+            <Cpu size={24} color={Colors.secondaryFixedDim} />
             <View style={styles.scanText}>
-              <Text style={styles.scanTitle}>
-                {t('onboarding.equipment.scanTitle')}
-              </Text>
+              <Text style={styles.scanTitle}>{t('onboarding.goals.scanTitle')}</Text>
               <Text style={styles.scanSubtitle}>
-                {t('onboarding.equipment.scanSubtitle', {
-                  count: selected.size,
-                  plural: selected.size !== 1 ? 's' : '',
-                })}
+                {t('onboarding.goals.scanSubtitle')}
               </Text>
             </View>
           </View>
@@ -198,13 +201,15 @@ export default function EquipmentScreen() {
           style={({ pressed }) => [
             styles.ctaButton,
             pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 },
+            isGenerating && { opacity: 0.6 },
           ]}
           onPress={handleContinue}
+          disabled={isGenerating}
         >
           <Text style={styles.ctaText}>
-            {t('onboarding.equipment.cta')}
+            {isGenerating ? t('onboarding.goals.ctaLoading') : t('onboarding.goals.cta')}
           </Text>
-          <ArrowRight size={20} color="#000000" />
+          {!isGenerating && <ArrowRight size={20} color="#000000" />}
         </Pressable>
       </View>
     </View>
@@ -285,20 +290,17 @@ const styles = StyleSheet.create({
     color: Colors.onSurfaceVariant,
     marginTop: 4,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
+  list: {
+    gap: 12,
   },
   card: {
-    width: '47%',
-    aspectRatio: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
     backgroundColor: Colors.surfaceContainerLow,
     borderWidth: 2,
     borderColor: Colors.surfaceVariant,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 12,
     padding: 16,
   },
   cardSelected: {
@@ -309,23 +311,28 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  checkIcon: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
   iconContainer: {
-    marginBottom: 8,
+    width: 48,
+    alignItems: 'center',
+  },
+  cardTextContainer: {
+    flex: 1,
   },
   cardLabel: {
     fontFamily: 'Inter_600SemiBold',
-    fontSize: 12,
-    letterSpacing: 1.5,
+    fontSize: 16,
+    letterSpacing: 0.5,
     color: '#ffffff',
     textTransform: 'uppercase',
   },
   cardLabelMuted: {
     color: Colors.onSurfaceVariant,
+  },
+  cardDesc: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    color: Colors.onSurfaceVariant,
+    marginTop: 2,
   },
   scanCard: {
     padding: 16,

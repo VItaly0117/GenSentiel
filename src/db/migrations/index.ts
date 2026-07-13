@@ -1,6 +1,7 @@
 import { getDb } from '../database';
 import { migration001 } from './001_initial';
 import { migration002 } from './002_nutrition_metrics';
+import { migration003 } from './003_instructions_ru';
 
 interface Migration {
   version: number;
@@ -11,6 +12,7 @@ interface Migration {
 const migrations: Migration[] = [
   { version: 1, name: '001_initial', sql: migration001 },
   { version: 2, name: '002_nutrition_metrics', sql: migration002 },
+  { version: 3, name: '003_instructions_ru', sql: migration003 },
 ];
 
 export function runMigrations(): void {

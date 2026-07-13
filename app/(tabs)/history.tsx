@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Star } from 'lucide-react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { getDb } from '../../src/db/database';
+import { useTranslation } from '../../src/i18n/useTranslation';
 
 const Colors = {
   black: '#000000',
@@ -17,9 +18,12 @@ const Colors = {
   prGold: '#FFD700',
 };
 
+const FILTERS = ['allTime', 'thisMonth'] as const;
+
 export default function HistoryScreen() {
   const router = useRouter();
-  const [filter, setFilter] = useState('All Time');
+  const { t } = useTranslation();
+  const [filter, setFilter] = useState<typeof FILTERS[number]>('allTime');
   const [stats, setStats] = useState({ sessions: 0, volume: 0, prs: 0, exercises: 0 });
   const [workouts, setWorkouts] = useState<any[]>([]);
 
@@ -31,7 +35,7 @@ export default function HistoryScreen() {
     // Calculate date filter
     let dateFilter = '';
     const now = new Date();
-    if (filter === 'This Month') {
+    if (filter === 'thisMonth') {
       const y = now.getFullYear();
       const m = String(now.getMonth() + 1).padStart(2, '0');
       dateFilter = `AND w.started_at >= '${y}-${m}-01'`;
@@ -98,19 +102,21 @@ export default function HistoryScreen() {
         
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>HISTORY</Text>
-          <Text style={styles.subtitle}>Review past performance metrics.</Text>
+          <Text style={styles.title}>{t('history.title')}</Text>
+          <Text style={styles.subtitle}>{t('history.subtitle')}</Text>
         </View>
 
         {/* Filters */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
-          {['All Time', 'This Month'].map(f => (
-            <Pressable 
-              key={f} 
+          {FILTERS.map(f => (
+            <Pressable
+              key={f}
               style={[styles.filterChip, filter === f && styles.filterChipActive]}
               onPress={() => setFilter(f)}
             >
-              <Text style={[styles.filterChipText, filter === f && styles.filterChipTextActive]}>{f}</Text>
+              <Text style={[styles.filterChipText, filter === f && styles.filterChipTextActive]}>
+                {t(`history.${f === 'allTime' ? 'allTime' : 'thisMonth'}`)}
+              </Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -118,19 +124,19 @@ export default function HistoryScreen() {
         {/* Summary Stats Grid */}
         <View style={styles.statsGrid}>
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>TOTAL SESSIONS</Text>
+            <Text style={styles.statLabel}>{t('history.totalSessions')}</Text>
             <Text style={styles.statValue}>{stats.sessions}</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>TOTAL VOLUME</Text>
+            <Text style={styles.statLabel}>{t('history.totalVolume')}</Text>
             <Text style={styles.statValue}>{formatVolume(stats.volume)}</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>PRs HIT</Text>
+            <Text style={styles.statLabel}>{t('history.prsHit')}</Text>
             <Text style={[styles.statValue, { color: Colors.primaryContainer }]}>{stats.prs}</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>EXERCISES</Text>
+            <Text style={styles.statLabel}>{t('history.exercises')}</Text>
             <Text style={styles.statValue}>{stats.exercises}</Text>
           </View>
         </View>
@@ -138,7 +144,7 @@ export default function HistoryScreen() {
         {/* Workout List */}
         <View style={styles.listContainer}>
           {workouts.length === 0 ? (
-            <Text style={styles.emptyText}>No workout history found for this period.</Text>
+            <Text style={styles.emptyText}>{t('history.noHistory')}</Text>
           ) : (
             workouts.map((w) => (
               <Pressable
@@ -150,7 +156,7 @@ export default function HistoryScreen() {
                   <View>
                     <View style={styles.cardTags}>
                       <View style={styles.tagBox}>
-                        <Text style={styles.tagText}>{w.split_type?.replace('_', ' ') || 'CUSTOM'}</Text>
+                        <Text style={styles.tagText}>{w.split_type?.replace('_', ' ') || t('history.custom')}</Text>
                       </View>
                       <Text style={styles.dateText}>{formatDate(w.started_at)}</Text>
                     </View>
@@ -161,20 +167,20 @@ export default function HistoryScreen() {
 
                 <View style={styles.cardMetrics}>
                   <View style={styles.metricCol}>
-                    <Text style={styles.metricLabel}>VOLUME</Text>
+                    <Text style={styles.metricLabel}>{t('history.volume')}</Text>
                     <Text style={styles.metricValue}>{w.volume || 0} kg</Text>
                   </View>
                   <View style={styles.metricCol}>
-                    <Text style={styles.metricLabel}>SETS</Text>
+                    <Text style={styles.metricLabel}>{t('history.sets')}</Text>
                     <Text style={styles.metricValue}>{w.sets}</Text>
                   </View>
                   {w.volume > 5000 && (
                     <View style={[styles.metricCol, { alignItems: 'flex-end' }]}>
                       <View style={styles.prRow}>
                         <Star size={12} color={Colors.prGold} fill={Colors.prGold} />
-                        <Text style={styles.prLabel}>HIGH VOLUME</Text>
+                        <Text style={styles.prLabel}>{t('history.highVolume')}</Text>
                       </View>
-                      <Text style={styles.metricValue}>Great Job</Text>
+                      <Text style={styles.metricValue}>{t('history.greatJob')}</Text>
                     </View>
                   )}
                 </View>

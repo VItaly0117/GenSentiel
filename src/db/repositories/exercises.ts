@@ -9,6 +9,7 @@ export interface Exercise {
   difficulty: number;
   set_type: string;
   instructions: string | null;
+  instructions_ru: string | null;
   progression_of: string | null;
   is_custom: number;
   created_at: string;

@@ -13,6 +13,8 @@ import { ChevronLeft, Search, Plus } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { getDb } from '../../src/db/database';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
+import { haptics } from '../../src/utils/haptics';
+import { useTranslation } from '../../src/i18n/useTranslation';
 
 const Colors = {
   black: '#000000',
@@ -30,19 +32,18 @@ interface ExerciseItem {
   nameRu: string;
   muscleGroup: string;
   setType: string;
+  instructions: string | null;
+  instructionsRu: string | null;
 }
-
-const MUSCLE_LABELS: Record<string, string> = {
-  chest: 'Chest',
-  back: 'Back',
-  legs: 'Legs',
-  shoulders: 'Shoulders',
-  arms: 'Arms',
-  core: 'Core',
-};
 
 export default function ExercisePickerScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const muscleLabel = (group: string) => {
+    const key = `exercisePicker.${group}`;
+    const translated = t(key);
+    return translated === key ? group : translated;
+  };
   const { addExercise, exercises: activeExercises } = useWorkoutStore();
   const [allExercises, setAllExercises] = useState<ExerciseItem[]>([]);
   const [search, setSearch] = useState('');
@@ -50,7 +51,7 @@ export default function ExercisePickerScreen() {
   useEffect(() => {
     const db = getDb();
     const rows = db.getAllSync<any>(
-      'SELECT id, name, name_ru as nameRu, muscle_group as muscleGroup, set_type as setType FROM exercises ORDER BY muscle_group, name',
+      'SELECT id, name, name_ru as nameRu, muscle_group as muscleGroup, set_type as setType, instructions, instructions_ru as instructionsRu FROM exercises ORDER BY muscle_group, name',
     );
     setAllExercises(rows);
   }, []);
@@ -65,13 +66,15 @@ export default function ExercisePickerScreen() {
     : allExercises;
 
   const handleAdd = (ex: ExerciseItem) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptics.impact(Haptics.ImpactFeedbackStyle.Medium);
     addExercise({
       id: ex.id,
       name: ex.name,
       nameRu: ex.nameRu,
       setType: ex.setType as any,
       muscleGroup: ex.muscleGroup,
+      instructions: ex.instructions,
+      instructionsRu: ex.instructionsRu,
     });
     router.back();
   };
@@ -89,12 +92,12 @@ export default function ExercisePickerScreen() {
         <View style={styles.rowInfo}>
           <Text style={styles.exName}>{item.nameRu || item.name}</Text>
           <Text style={styles.exMeta}>
-            {MUSCLE_LABELS[item.muscleGroup] ?? item.muscleGroup} •{' '}
+            {muscleLabel(item.muscleGroup)} •{' '}
             {item.setType.replace(/_/g, ' ')}
           </Text>
         </View>
         {alreadyAdded ? (
-          <Text style={styles.addedLabel}>ADDED</Text>
+          <Text style={styles.addedLabel}>{t('exercisePicker.added')}</Text>
         ) : (
           <View style={styles.addBtn}>
             <Plus size={18} color={Colors.black} />
@@ -106,7 +109,7 @@ export default function ExercisePickerScreen() {
 
   const renderSectionHeader = (group: string) => (
     <Text style={styles.sectionHeader}>
-      {MUSCLE_LABELS[group] ?? group.toUpperCase()}
+      {muscleLabel(group)}
     </Text>
   );
 
@@ -133,7 +136,7 @@ export default function ExercisePickerScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <ChevronLeft size={24} color={Colors.onSurface} />
         </Pressable>
-        <Text style={styles.topTitle}>ADD EXERCISE</Text>
+        <Text style={styles.topTitle}>{t('exercisePicker.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -141,7 +144,7 @@ export default function ExercisePickerScreen() {
         <Search size={18} color={Colors.onSurfaceVariant} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search exercises..."
+          placeholder={t('exercisePicker.searchPlaceholder')}
           placeholderTextColor={Colors.onSurfaceVariant}
           value={search}
           onChangeText={setSearch}

@@ -7,6 +7,7 @@ import {
   UtensilsCrossed,
   User,
 } from 'lucide-react-native';
+import { useTranslation } from '../../src/i18n/useTranslation';
 
 const TAB_BAR_BG = '#0c0f0f';
 const ACTIVE_COLOR = '#abd600';
@@ -14,6 +15,7 @@ const INACTIVE_COLOR = '#8e9379';
 const BORDER_COLOR = 'rgba(119, 1, 208, 0.1)';
 
 export default function TabsLayout() {
+  const { t } = useTranslation();
   return (
     <Tabs
       screenOptions={{
@@ -40,7 +42,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'HQ',
+          title: t('tabs.hq'),
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIcon : undefined}>
               <LayoutDashboard size={24} color={color} />
@@ -51,7 +53,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="workout"
         options={{
-          title: 'Train',
+          title: t('tabs.train'),
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIcon : undefined}>
               <Dumbbell size={24} color={color} />
@@ -62,7 +64,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="history"
         options={{
-          title: 'Logs',
+          title: t('tabs.logs'),
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIcon : undefined}>
               <Clock size={24} color={color} />
@@ -73,7 +75,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="nutrition"
         options={{
-          title: 'Fuel',
+          title: t('tabs.fuel'),
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIcon : undefined}>
               <UtensilsCrossed size={24} color={color} />
@@ -84,7 +86,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Operator',
+          title: t('tabs.operator'),
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIcon : undefined}>
               <User size={24} color={color} />

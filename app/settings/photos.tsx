@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { File, Directory, Paths } from 'expo-file-system';
 import { Camera, ChevronLeft, Trash2 } from 'lucide-react-native';
+import { useTranslation } from '../../src/i18n/useTranslation';
 
 const Colors = {
   black: '#000000',
@@ -24,6 +25,7 @@ interface ProgressPhoto {
 
 export default function ProgressPhotosScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [photos, setPhotos] = useState<ProgressPhoto[]>([]);
 
   const getPhotosDir = () => new Directory(Paths.document, 'progress_photos');
@@ -59,7 +61,7 @@ export default function ProgressPhotosScreen() {
   const takePhoto = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission needed', 'Camera access is required to take progress photos.');
+      Alert.alert(t('photos.permissionTitle'), t('photos.permissionBody'));
       return;
     }
 
@@ -82,16 +84,16 @@ export default function ProgressPhotosScreen() {
         loadPhotos();
       } catch (e) {
         console.error('Failed to save photo', e);
-        Alert.alert('Error', 'Failed to save photo. Please try again.');
+        Alert.alert(t('photos.saveFailTitle'), t('photos.saveFailBody'));
       }
     }
   };
 
   const deletePhoto = (id: string, uri: string) => {
-    Alert.alert('Delete Photo?', 'Are you sure you want to delete this progress photo?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('photos.deleteTitle'), t('photos.deleteBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: () => {
           try {
@@ -100,7 +102,7 @@ export default function ProgressPhotosScreen() {
             loadPhotos();
           } catch (e) {
             console.error('Failed to delete photo', e);
-            Alert.alert('Error', 'Failed to delete photo. Please try again.');
+            Alert.alert(t('photos.saveFailTitle'), t('photos.deleteFailBody'));
           }
         },
       },
@@ -120,7 +122,7 @@ export default function ProgressPhotosScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <ChevronLeft size={24} color={Colors.onSurface} />
         </Pressable>
-        <Text style={styles.topTitle}>PROGRESS PHOTOS</Text>
+        <Text style={styles.topTitle}>{t('photos.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -131,9 +133,9 @@ export default function ProgressPhotosScreen() {
             <View style={styles.emptyIconBox}>
               <Camera size={32} color={Colors.primaryContainer} />
             </View>
-            <Text style={styles.emptyTitle}>NO INTEL YET</Text>
+            <Text style={styles.emptyTitle}>{t('photos.emptyTitle')}</Text>
             <Text style={styles.emptyDesc}>
-              Track your physical transformation over time. Photos are encrypted and stored locally.
+              {t('photos.emptyDesc')}
             </Text>
           </View>
         ) : (

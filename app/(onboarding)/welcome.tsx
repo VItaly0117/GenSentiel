@@ -8,6 +8,7 @@ import Animated, {
   withDelay,
   Easing,
 } from 'react-native-reanimated';
+import { useTranslation } from '../../src/i18n/useTranslation';
 
 const Colors = {
   black: '#000000',
@@ -22,6 +23,7 @@ const Colors = {
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const titleOpacity = useSharedValue(0);
   const titleTranslateY = useSharedValue(20);
@@ -68,7 +70,7 @@ export default function WelcomeScreen() {
         </Animated.Text>
 
         <Animated.Text style={[styles.subtitle, subtitleStyle]}>
-          YOUR AUTONOMOUS HOME TRAINING SENTINEL
+          {t('onboarding.welcome.subtitle')}
         </Animated.Text>
 
         <Animated.Text style={[styles.description, descStyle]}>
@@ -87,10 +89,10 @@ export default function WelcomeScreen() {
           ]}
           onPress={() => router.push('/(onboarding)/equipment')}
         >
-          <Text style={styles.buttonText}>INITIALIZE SYSTEM</Text>
+          <Text style={styles.buttonText}>{t('onboarding.welcome.cta')}</Text>
         </Pressable>
 
-        <Text style={styles.versionText}>v1.0.0 — OFFLINE READY</Text>
+        <Text style={styles.versionText}>{t('onboarding.welcome.version')}</Text>
       </Animated.View>
     </View>
   );

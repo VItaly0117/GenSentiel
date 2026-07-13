@@ -1,4 +1,5 @@
 import { getDb } from '@db/database';
+import type { TrainingGoal } from '../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -9,6 +10,7 @@ export interface GeneratorOptions {
   splitType: SplitType;
   difficulty: 1 | 2 | 3 | 4 | 5;
   daysPerWeek: 2 | 3 | 4 | 5;
+  goal?: TrainingGoal;
 }
 
 export interface GeneratedDay {
@@ -67,33 +69,50 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function restForDifficulty(difficulty: number): number {
-  if (difficulty <= 2) return 45;
-  if (difficulty <= 3) return 60;
-  return 90;
+// ─── Goal → training profile ───────────────────────────────────────────────────
+
+interface GoalProfile {
+  sets: number;
+  restSeconds: number;
+  reps: Record<string, number>;
+  exercisesPerMuscleGroup: [number, number]; // [min, max] pick range
 }
 
-function setsForDifficulty(difficulty: number): number {
-  if (difficulty <= 2) return 3;
-  if (difficulty <= 3) return 3;
-  return 4;
-}
+const GOAL_PROFILES: Record<TrainingGoal, GoalProfile> = {
+  strength: {
+    sets: 5,
+    restSeconds: 120,
+    reps: { weight_reps: 5, reps_only: 6, band_reps: 8, timed: 20 },
+    exercisesPerMuscleGroup: [1, 1],
+  },
+  hypertrophy: {
+    sets: 4,
+    restSeconds: 75,
+    reps: { weight_reps: 10, reps_only: 12, band_reps: 15, timed: 30 },
+    exercisesPerMuscleGroup: [1, 2],
+  },
+  fat_loss: {
+    sets: 3,
+    restSeconds: 30,
+    reps: { weight_reps: 15, reps_only: 18, band_reps: 20, timed: 45 },
+    exercisesPerMuscleGroup: [2, 2],
+  },
+  general_fitness: {
+    sets: 3,
+    restSeconds: 60,
+    reps: { weight_reps: 10, reps_only: 12, band_reps: 15, timed: 30 },
+    exercisesPerMuscleGroup: [1, 2],
+  },
+};
 
-function defaultRepsForType(
+function repsForGoal(
   setType: string,
+  profile: GoalProfile,
 ): { reps: number | null; timeS: number | null } {
-  switch (setType) {
-    case 'weight_reps':
-      return { reps: 10, timeS: null };
-    case 'reps_only':
-      return { reps: 12, timeS: null };
-    case 'timed':
-      return { reps: null, timeS: 30 };
-    case 'band_reps':
-      return { reps: 15, timeS: null };
-    default:
-      return { reps: 10, timeS: null };
+  if (setType === 'timed') {
+    return { reps: null, timeS: profile.reps.timed };
   }
+  return { reps: profile.reps[setType] ?? profile.reps.weight_reps, timeS: null };
 }
 
 // ─── DB row shape ─────────────────────────────────────────────────────────────
@@ -136,7 +155,8 @@ function classifyArmExercise(name: string): 'push' | 'pull' | 'arms' {
 export async function generateProgram(
   options: GeneratorOptions,
 ): Promise<GeneratedDay[]> {
-  const { equipment, splitType, difficulty, daysPerWeek } = options;
+  const { equipment, splitType, difficulty, daysPerWeek, goal = 'general_fitness' } = options;
+  const profile = GOAL_PROFILES[goal];
 
   const db = getDb();
   const rows = await db.getAllAsync<ExerciseRow>('SELECT * FROM exercises');
@@ -200,8 +220,8 @@ export async function generateProgram(
   }
 
   // Generate each day
-  const rest = restForDifficulty(difficulty);
-  const numSets = setsForDifficulty(difficulty);
+  const rest = profile.restSeconds;
+  const numSets = profile.sets;
   const days: GeneratedDay[] = [];
 
   const dayNames: Record<SplitType, string> = {
@@ -221,13 +241,17 @@ export async function generateProgram(
         (ex) => !usedIds.has(ex.id),
       );
 
-      // Pick 1–2 exercises per muscle group
-      const pickCount = pool.length >= 2 ? (Math.random() < 0.5 ? 1 : 2) : 1;
+      // Pick exercises per muscle group, count driven by the goal profile
+      const [minPick, maxPick] = profile.exercisesPerMuscleGroup;
+      const pickCount =
+        pool.length >= maxPick
+          ? Math.floor(Math.random() * (maxPick - minPick + 1)) + minPick
+          : Math.min(minPick, pool.length) || pool.length;
       const picked = pool.slice(0, Math.min(pickCount, pool.length));
 
       for (const ex of picked) {
         usedIds.add(ex.id);
-        const { reps, timeS } = defaultRepsForType(ex.set_type);
+        const { reps, timeS } = repsForGoal(ex.set_type, profile);
         dayExercises.push({
           exerciseId: ex.id,
           name: ex.name,

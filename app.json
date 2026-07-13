@@ -22,6 +22,14 @@
         {
           "cameraPermission": "Allow GenSentiel to take progress photos."
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon.png",
+          "backgroundColor": "#000000",
+          "resizeMode": "contain"
+        }
       ]
     ],
     "ios": {

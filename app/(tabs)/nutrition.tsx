@@ -4,6 +4,7 @@ import { Plus, Coffee, Utensils, UtensilsCrossed, Apple, X } from 'lucide-react-
 import { useFocusEffect } from 'expo-router';
 import { MacroRing } from '../../src/components/nutrition/MacroRing';
 import { getDayNutrition, addNutritionLog, NutritionLog } from '../../src/db/repositories/nutrition';
+import { useTranslation } from '../../src/i18n/useTranslation';
 
 const Colors = {
   black: '#000000',
@@ -22,6 +23,7 @@ const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 type MealType = typeof MEAL_TYPES[number];
 
 export default function NutritionScreen() {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<NutritionLog[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [mealType, setMealType] = useState<MealType>('breakfast');
@@ -92,7 +94,7 @@ export default function NutritionScreen() {
             {icon}
             <Text style={[styles.mealTitle, { color }]}>{title}</Text>
           </View>
-          <Text style={styles.mealTotal}>{mealCals} KCAL</Text>
+          <Text style={styles.mealTotal}>{mealCals} {t('home.kcal')}</Text>
         </View>
         
         {mealLogs.length > 0 && (
@@ -102,10 +104,10 @@ export default function NutritionScreen() {
                 <View>
                   <Text style={styles.foodName}>{log.food_name}</Text>
                   <Text style={styles.foodMacros}>
-                    {log.carbs_g}g C • {log.protein_g}g P • {log.fat_g}g F
+                    {log.carbs_g}{t('nutrition.macroAbbrevCarbs')} • {log.protein_g}{t('nutrition.macroAbbrevProtein')} • {log.fat_g}{t('nutrition.macroAbbrevFat')}
                   </Text>
                 </View>
-                <Text style={styles.foodCals}>{log.calories} kcal</Text>
+                <Text style={styles.foodCals}>{log.calories} {t('nutrition.kcalLower')}</Text>
               </View>
             ))}
           </View>
@@ -117,7 +119,7 @@ export default function NutritionScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <Text style={styles.title}>DAILY FUEL</Text>
+        <Text style={styles.title}>{t('nutrition.title')}</Text>
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
@@ -135,17 +137,17 @@ export default function NutritionScreen() {
           <View style={styles.legendRow}>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: Colors.tertiary, shadowColor: Colors.tertiary }]} />
-              <Text style={styles.legendLabel}>CALORIES</Text>
+              <Text style={styles.legendLabel}>{t('nutrition.calories')}</Text>
               <Text style={styles.legendValue}>{Math.round((totals.calories/GOALS.calories)*100)}%</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: Colors.primaryContainer, shadowColor: Colors.primaryContainer }]} />
-              <Text style={styles.legendLabel}>PROTEIN</Text>
+              <Text style={styles.legendLabel}>{t('nutrition.protein')}</Text>
               <Text style={styles.legendValue}>{Math.round(totals.protein)}g</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: Colors.secondary, shadowColor: Colors.secondary }]} />
-              <Text style={styles.legendLabel}>CARBS</Text>
+              <Text style={styles.legendLabel}>{t('nutrition.carbs')}</Text>
               <Text style={styles.legendValue}>{Math.round(totals.carbs)}g</Text>
             </View>
           </View>
@@ -153,10 +155,10 @@ export default function NutritionScreen() {
 
         {/* Meal Sections */}
         <View style={styles.mealsContainer}>
-          {renderMealSection('breakfast', <Coffee size={20} color={Colors.primaryContainer} />, 'Breakfast', Colors.primaryContainer)}
-          {renderMealSection('lunch', <Utensils size={20} color={Colors.secondary} />, 'Lunch', Colors.secondary)}
-          {renderMealSection('dinner', <UtensilsCrossed size={20} color={Colors.tertiary} />, 'Dinner', Colors.tertiary)}
-          {renderMealSection('snack', <Apple size={20} color={Colors.onSurfaceVariant} />, 'Snacks', Colors.onSurface)}
+          {renderMealSection('breakfast', <Coffee size={20} color={Colors.primaryContainer} />, t('nutrition.breakfast'), Colors.primaryContainer)}
+          {renderMealSection('lunch', <Utensils size={20} color={Colors.secondary} />, t('nutrition.lunch'), Colors.secondary)}
+          {renderMealSection('dinner', <UtensilsCrossed size={20} color={Colors.tertiary} />, t('nutrition.dinner'), Colors.tertiary)}
+          {renderMealSection('snack', <Apple size={20} color={Colors.onSurfaceVariant} />, t('nutrition.snacks'), Colors.onSurface)}
         </View>
       </ScrollView>
 
@@ -170,7 +172,7 @@ export default function NutritionScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>LOG FOOD</Text>
+              <Text style={styles.modalTitle}>{t('nutrition.logFood')}</Text>
               <Pressable onPress={() => setShowModal(false)}>
                 <X size={20} color={Colors.onSurfaceVariant} />
               </Pressable>
@@ -185,48 +187,48 @@ export default function NutritionScreen() {
                   onPress={() => setMealType(m)}
                 >
                   <Text style={[styles.mealChipText, mealType === m && styles.mealChipTextActive]}>
-                    {m.charAt(0).toUpperCase() + m.slice(1)}
+                    {t(`nutrition.mealType${m.charAt(0).toUpperCase()}${m.slice(1)}`)}
                   </Text>
                 </Pressable>
               ))}
             </View>
 
-            <Text style={styles.inputLabel}>FOOD NAME *</Text>
+            <Text style={styles.inputLabel}>{t('nutrition.foodNameLabel')}</Text>
             <TextInput
               style={styles.input}
               value={foodName}
               onChangeText={setFoodName}
-              placeholder="e.g. Chicken Breast"
+              placeholder={t('nutrition.foodNamePlaceholder')}
               placeholderTextColor={Colors.onSurfaceVariant}
             />
 
-            <Text style={styles.inputLabel}>CALORIES (KCAL) *</Text>
+            <Text style={styles.inputLabel}>{t('nutrition.caloriesLabel')}</Text>
             <TextInput
               style={styles.input}
               value={calories}
               onChangeText={setCalories}
               keyboardType="decimal-pad"
-              placeholder="e.g. 350"
+              placeholder={t('nutrition.caloriesPlaceholder')}
               placeholderTextColor={Colors.onSurfaceVariant}
             />
 
             <View style={styles.macroRow}>
               <View style={styles.macroField}>
-                <Text style={styles.inputLabel}>PROTEIN (G)</Text>
+                <Text style={styles.inputLabel}>{t('nutrition.proteinLabel')}</Text>
                 <TextInput style={styles.input} value={protein} onChangeText={setProtein} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={Colors.onSurfaceVariant} />
               </View>
               <View style={styles.macroField}>
-                <Text style={styles.inputLabel}>CARBS (G)</Text>
+                <Text style={styles.inputLabel}>{t('nutrition.carbsLabel')}</Text>
                 <TextInput style={styles.input} value={carbs} onChangeText={setCarbs} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={Colors.onSurfaceVariant} />
               </View>
               <View style={styles.macroField}>
-                <Text style={styles.inputLabel}>FAT (G)</Text>
+                <Text style={styles.inputLabel}>{t('nutrition.fatLabel')}</Text>
                 <TextInput style={styles.input} value={fat} onChangeText={setFat} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={Colors.onSurfaceVariant} />
               </View>
             </View>
 
             <Pressable style={[styles.saveButton, (!foodName.trim() || !calories) && styles.saveButtonDisabled]} onPress={handleSaveFood}>
-              <Text style={styles.saveButtonText}>ADD FOOD</Text>
+              <Text style={styles.saveButtonText}>{t('nutrition.addFood')}</Text>
             </Pressable>
           </View>
         </KeyboardAvoidingView>

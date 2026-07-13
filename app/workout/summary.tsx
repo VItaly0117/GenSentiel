@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CheckCircle, Clock, Dumbbell, ListOrdered, Trophy, Lightbulb } from 'lucide-react-native';
 import { getDb } from '../../src/db/database';
 import { getWorkoutStats, analyzeProgression, ProgressionSuggestion } from '../../src/utils/progressionEngine';
+import { useTranslation } from '../../src/i18n/useTranslation';
 
 const Colors = {
   black: '#000000',
@@ -19,7 +20,8 @@ const Colors = {
 export default function WorkoutSummaryScreen() {
   const { workoutId } = useLocalSearchParams();
   const router = useRouter();
-  
+  const { t } = useTranslation();
+
   const [workout, setWorkout] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
   const [suggestions, setSuggestions] = useState<Array<{ name: string, suggestion: ProgressionSuggestion }>>([]);
@@ -67,7 +69,7 @@ export default function WorkoutSummaryScreen() {
         <View style={styles.checkCircle}>
           <CheckCircle size={48} color={Colors.black} />
         </View>
-        <Text style={styles.title}>MISSION COMPLETE</Text>
+        <Text style={styles.title}>{t('workoutSummary.title')}</Text>
         <Text style={styles.subtitle}>{workout.name}</Text>
       </View>
 
@@ -76,7 +78,7 @@ export default function WorkoutSummaryScreen() {
         <View style={styles.statCard}>
           <View style={styles.statIconRow}>
             <Clock size={16} color={Colors.onSurfaceVariant} />
-            <Text style={styles.statLabel}>DURATION</Text>
+            <Text style={styles.statLabel}>{t('workoutSummary.duration')}</Text>
           </View>
           <Text style={styles.statValue}>{formatDuration(stats.duration)}</Text>
         </View>
@@ -84,15 +86,15 @@ export default function WorkoutSummaryScreen() {
         <View style={styles.statCard}>
           <View style={styles.statIconRow}>
             <Dumbbell size={16} color={Colors.onSurfaceVariant} />
-            <Text style={styles.statLabel}>VOLUME</Text>
+            <Text style={styles.statLabel}>{t('workoutSummary.volume')}</Text>
           </View>
-          <Text style={styles.statValue}>{stats.totalVolume.toLocaleString()} <Text style={styles.statUnit}>KG</Text></Text>
+          <Text style={styles.statValue}>{stats.totalVolume.toLocaleString()} <Text style={styles.statUnit}>{t('profile.kg')}</Text></Text>
         </View>
 
         <View style={styles.statCard}>
           <View style={styles.statIconRow}>
             <ListOrdered size={16} color={Colors.onSurfaceVariant} />
-            <Text style={styles.statLabel}>SETS</Text>
+            <Text style={styles.statLabel}>{t('workoutSummary.sets')}</Text>
           </View>
           <Text style={styles.statValue}>{stats.totalSets}</Text>
         </View>
@@ -100,18 +102,18 @@ export default function WorkoutSummaryScreen() {
         <View style={[styles.statCard, styles.statCardAccent]}>
           <View style={styles.statIconRow}>
             <Trophy size={16} color={Colors.primaryContainer} />
-            <Text style={[styles.statLabel, { color: Colors.primaryContainer }]}>RECORDS</Text>
+            <Text style={[styles.statLabel, { color: Colors.primaryContainer }]}>{t('workoutSummary.records')}</Text>
           </View>
           <Text style={[styles.statValue, { color: Colors.primaryContainer }]}>{stats.prs}</Text>
         </View>
       </View>
 
       {/* Progressions */}
-      <Text style={styles.sectionTitle}>PROGRESSION INTEL</Text>
-      
+      <Text style={styles.sectionTitle}>{t('workoutSummary.progressionIntel')}</Text>
+
       {suggestions.length === 0 ? (
         <View style={styles.emptySuggestions}>
-          <Text style={styles.emptyText}>Keep pushing. Progressions unlock with more data.</Text>
+          <Text style={styles.emptyText}>{t('workoutSummary.noProgressions')}</Text>
         </View>
       ) : (
         <View style={styles.suggestionsList}>
@@ -133,7 +135,7 @@ export default function WorkoutSummaryScreen() {
         style={styles.returnBtn}
         onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/workout')}
       >
-        <Text style={styles.returnBtnText}>RETURN TO HQ</Text>
+        <Text style={styles.returnBtnText}>{t('workoutSummary.returnToHq')}</Text>
       </Pressable>
     </ScrollView>
   );
