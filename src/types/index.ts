@@ -7,6 +7,7 @@ export interface Exercise {
   difficulty: number;
   set_type: 'weight_reps' | 'reps_only' | 'timed' | 'band_reps';
   instructions: string | null;
+  instructions_ru: string | null;
   progression_of: string | null;
   is_custom: number;
   created_at?: string;
@@ -21,6 +22,8 @@ export type EquipmentKey =
   | 'kettlebell'
   | 'pullup_bar'
   | 'bench';
+
+export type TrainingGoal = 'strength' | 'hypertrophy' | 'fat_loss' | 'general_fitness';
 
 export interface WorkoutTemplate {
   id: string;

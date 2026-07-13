@@ -4,7 +4,8 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Search, Plus, Timer, ListTree, CheckCircle } from 'lucide-react-native';
 import { getDb } from '../../src/db/database';
 import { generateProgram, saveGeneratedProgram } from '../../src/utils/programGenerator';
-import { getUserEquipment } from '../../src/db/repositories/equipment';
+import { getUserEquipment, getUserGoal } from '../../src/db/repositories/equipment';
+import { useTranslation } from '../../src/i18n/useTranslation';
 
 const Colors = {
   black: '#000000',
@@ -18,27 +19,28 @@ const Colors = {
   onSurfaceVariant: '#c4c9ac',
 };
 
-const FILTERS = ['All', 'Full Body', 'Upper', 'Lower'];
-const FILTER_SPLIT_MAP: Record<string, string> = {
-  'Full Body': 'full_body',
-  'Upper': 'upper',
-  'Lower': 'lower',
+const FILTERS = ['all', 'full_body', 'upper', 'lower'] as const;
+const FILTER_LABEL_KEY: Record<string, string> = {
+  all: 'filterAll',
+  full_body: 'filterFullBody',
+  upper: 'filterUpper',
+  lower: 'filterLower',
 };
 
 export default function WorkoutListScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [allTemplates, setAllTemplates] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   const [recentWorkouts, setRecentWorkouts] = useState<any[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const applyFilters = (all: any[], filter: string, search: string) => {
     let filtered = all;
-    if (filter !== 'All') {
-      const split = FILTER_SPLIT_MAP[filter];
-      if (split) filtered = filtered.filter((t) => t.split_type === split);
+    if (filter !== 'all') {
+      filtered = filtered.filter((t) => t.split_type === filter);
     }
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -78,11 +80,13 @@ export default function WorkoutListScreen() {
     setIsGenerating(true);
     try {
       const equipment = getUserEquipment();
+      const goal = getUserGoal();
       const generatedDays = await generateProgram({
         equipment,
         splitType: 'full_body',
         difficulty: 3,
-        daysPerWeek: 3
+        daysPerWeek: 3,
+        goal,
       });
       await saveGeneratedProgram(generatedDays);
       loadData();
@@ -115,10 +119,10 @@ export default function WorkoutListScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>WORKOUTS</Text>
+        <Text style={styles.title}>{t('workoutTab.title')}</Text>
         <Pressable style={styles.newButton} onPress={startCustomWorkout}>
           <Plus size={16} color={Colors.black} />
-          <Text style={styles.newButtonText}>NEW</Text>
+          <Text style={styles.newButtonText}>{t('workoutTab.newBtn')}</Text>
         </Pressable>
       </View>
 
@@ -128,7 +132,7 @@ export default function WorkoutListScreen() {
           <Search size={20} color={Colors.onSurfaceVariant} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search programs..."
+            placeholder={t('workoutTab.searchPlaceholder')}
             placeholderTextColor={Colors.onSurfaceVariant}
             value={searchQuery}
             onChangeText={(q) => {
@@ -150,24 +154,24 @@ export default function WorkoutListScreen() {
               }}
             >
               <Text style={activeFilter === f ? styles.filterChipTextActive : styles.filterChipText}>
-                {f}
+                {t(`workoutTab.${FILTER_LABEL_KEY[f]}`)}
               </Text>
             </Pressable>
           ))}
         </ScrollView>
 
         {/* Templates */}
-        <Text style={styles.sectionTitle}>MY PROGRAMS</Text>
+        <Text style={styles.sectionTitle}>{t('workoutTab.myPrograms')}</Text>
         {templates.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>No programs found.</Text>
-            <Pressable 
-              style={styles.generateButton} 
+            <Text style={styles.emptyText}>{t('workoutTab.noPrograms')}</Text>
+            <Pressable
+              style={styles.generateButton}
               onPress={handleGenerateProgram}
               disabled={isGenerating}
             >
               <Text style={styles.generateButtonText}>
-                {isGenerating ? 'Generating...' : 'Generate First Program'}
+                {isGenerating ? t('workoutTab.generating') : t('workoutTab.generateFirst')}
               </Text>
             </Pressable>
           </View>
@@ -179,30 +183,30 @@ export default function WorkoutListScreen() {
                 <View key={tmpl.id} style={[styles.templateCard, isFeatured && styles.templateCardFeatured]}>
                   {isFeatured && (
                     <View style={styles.aiBadge}>
-                      <Text style={styles.aiBadgeText}>AI GENERATED</Text>
+                      <Text style={styles.aiBadgeText}>{t('workoutTab.aiGenerated')}</Text>
                     </View>
                   )}
                   <View style={styles.templateContent}>
                     <Text style={styles.templateName}>{tmpl.name}</Text>
                     <Text style={styles.templateDesc} numberOfLines={2}>
-                      {tmpl.description || 'Custom generated workout protocol.'}
+                      {tmpl.description || t('workoutTab.defaultDesc')}
                     </Text>
                     <View style={styles.templateStats}>
                       <View style={styles.statPill}>
                         <Timer size={14} color={isFeatured ? Colors.primaryContainer : Colors.secondary} />
-                        <Text style={styles.statText}>45 MIN</Text>
+                        <Text style={styles.statText}>45 {t('workoutTab.minutes')}</Text>
                       </View>
                       <View style={styles.statPill}>
                         <ListTree size={14} color={isFeatured ? Colors.primaryContainer : Colors.secondary} />
-                        <Text style={styles.statText}>{tmpl.exerciseCount} EXERCISES</Text>
+                        <Text style={styles.statText}>{tmpl.exerciseCount} {t('workoutTab.exercisesCount')}</Text>
                       </View>
                     </View>
                   </View>
-                  <Pressable 
+                  <Pressable
                     style={[styles.startButton, isFeatured && styles.startButtonFeatured]}
                     onPress={() => startTemplate(tmpl.id)}
                   >
-                    <Text style={[styles.startButtonText, isFeatured && styles.startButtonTextFeatured]}>START</Text>
+                    <Text style={[styles.startButtonText, isFeatured && styles.startButtonTextFeatured]}>{t('workoutTab.start')}</Text>
                   </Pressable>
                 </View>
               );
@@ -212,13 +216,13 @@ export default function WorkoutListScreen() {
 
         {/* History */}
         <View style={styles.historyHeader}>
-          <Text style={styles.sectionTitle}>RECENT HISTORY</Text>
+          <Text style={styles.sectionTitle}>{t('workoutTab.recentHistory')}</Text>
           <Pressable onPress={() => router.push('/(tabs)/history')}>
-            <Text style={styles.viewAllText}>VIEW ALL</Text>
+            <Text style={styles.viewAllText}>{t('workoutTab.viewAll')}</Text>
           </Pressable>
         </View>
         {recentWorkouts.length === 0 ? (
-          <Text style={styles.emptyHistory}>No recent workouts logged.</Text>
+          <Text style={styles.emptyHistory}>{t('workoutTab.noRecentWorkouts')}</Text>
         ) : (
           <View style={styles.historyList}>
             {recentWorkouts.map((w) => (

@@ -53,7 +53,7 @@ export default function SplashScreen() {
         if (completed) {
           router.replace('/(tabs)/');
         } else {
-          router.replace('/(onboarding)/');
+          router.replace('/(onboarding)/welcome');
         }
       } catch (e) {
         // Fallback if db error

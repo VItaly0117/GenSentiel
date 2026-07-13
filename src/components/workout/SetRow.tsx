@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput } from 'react-native';
 import { Check } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { haptics } from '../../utils/haptics';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const Colors = {
   black: '#000000',
@@ -49,8 +51,9 @@ export function SetRow({
   onBandChange,
   onComplete,
 }: SetRowProps) {
+  const { t } = useTranslation();
   const handleComplete = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptics.impact(Haptics.ImpactFeedbackStyle.Medium);
     onComplete();
   };
 
@@ -89,12 +92,12 @@ export function SetRow({
             placeholderTextColor={Colors.onSurfaceVariant}
           />
         )}
-        {setType === 'reps_only' && <View style={styles.staticBox}><Text style={styles.staticText}>BW</Text></View>}
+        {setType === 'reps_only' && <View style={styles.staticBox}><Text style={styles.staticText}>{t('setRow.bodyweight')}</Text></View>}
         {setType === 'timed' && <View style={styles.staticBox}><Text style={styles.staticText}>—</Text></View>}
         {setType === 'band_reps' && (
           <Pressable style={[styles.bandBox, { borderColor: bandColors[bandLevel || 'light'] }]} onPress={cycleBand}>
             <Text style={[styles.bandText, { color: bandColors[bandLevel || 'light'] }]}>
-              {bandLevel === 'extra_heavy' ? 'X-HVY' : bandLevel?.toUpperCase() || 'LIGHT'}
+              {t(`setRow.${bandLevel === 'extra_heavy' ? 'extraHeavy' : bandLevel || 'light'}`)}
             </Text>
           </Pressable>
         )}

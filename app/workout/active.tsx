@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Alert, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { X, SkipForward, Plus } from 'lucide-react-native';
+import { X, SkipForward, Plus, List, Focus } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import { getDb } from '../../src/db/database';
@@ -11,6 +11,10 @@ import { useSaveWorkout } from '../../src/hooks/useSaveWorkout';
 
 import { ExerciseCard } from '../../src/components/workout/ExerciseCard';
 import { RestTimerFloat } from '../../src/components/workout/RestTimerFloat';
+import { FocusView } from '../../src/components/workout/FocusView';
+import { classifyMovementPattern } from '../../src/utils/movementPattern';
+import { haptics } from '../../src/utils/haptics';
+import { useTranslation } from '../../src/i18n/useTranslation';
 
 const Colors = {
   black: '#000000',
@@ -23,6 +27,7 @@ const Colors = {
 
 export default function ActiveWorkoutScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { templateId, type } = useLocalSearchParams();
   const {
     startWorkout,
@@ -42,6 +47,8 @@ export default function ActiveWorkoutScreen() {
   const listRef = useRef<FlatList>(null);
   const [clock, setClock] = useState('0:00');
   const [initDone, setInitDone] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'focus'>('list');
+  const [focusIndex, setFocusIndex] = useState(0);
 
   // Initialize workout
   useEffect(() => {
@@ -56,7 +63,8 @@ export default function ActiveWorkoutScreen() {
       if (tmpl) workoutName = tmpl.name;
 
       loadedExercises = db.getAllSync<any>(`
-        SELECT e.id, e.name, e.name_ru as nameRu, e.set_type as setType, e.muscle_group as muscleGroup
+        SELECT e.id, e.name, e.name_ru as nameRu, e.set_type as setType, e.muscle_group as muscleGroup,
+               e.instructions, e.instructions_ru as instructionsRu
         FROM template_exercises te
         JOIN exercises e ON e.id = te.exercise_id
         WHERE te.template_id = ?
@@ -90,7 +98,7 @@ export default function ActiveWorkoutScreen() {
       const { seconds: current } = useTimerStore.getState();
       tick();
       if (current === 1) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        haptics.notification(Haptics.NotificationFeedbackType.Success);
       }
     }, 1000);
 
@@ -98,9 +106,9 @@ export default function ActiveWorkoutScreen() {
   }, [isRunning]);
 
   const handleEnd = () => {
-    Alert.alert('End Mission?', 'Are you sure you want to end this workout?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'End', style: 'destructive', onPress: () => {
+    Alert.alert(t('workoutActive.endMissionTitle'), t('workoutActive.endMissionBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('workoutActive.end'), style: 'destructive', onPress: () => {
           stopTimer();
           resetWorkout();
           router.replace('/(tabs)/workout');
@@ -110,10 +118,10 @@ export default function ActiveWorkoutScreen() {
   };
 
   const handleCompleteMission = () => {
-    Alert.alert('Complete Mission', 'Save workout and return to HQ?', [
-      { text: 'Cancel', style: 'cancel' },
-      { 
-        text: 'Complete', 
+    Alert.alert(t('workoutActive.completeMissionTitle'), t('workoutActive.completeMissionBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('workoutActive.complete'),
         onPress: async () => {
           stopTimer();
           finishWorkout();
@@ -161,6 +169,18 @@ export default function ActiveWorkoutScreen() {
     }
   };
 
+  const toggleViewMode = () => {
+    if (viewMode === 'list') {
+      const firstIncomplete = exercises.findIndex((ex) =>
+        sets.some((s) => s.exerciseId === ex.id && !s.completed),
+      );
+      setFocusIndex(firstIncomplete >= 0 ? firstIncomplete : 0);
+      setViewMode('focus');
+    } else {
+      setViewMode('list');
+    }
+  };
+
   // Calculate global progress
   const totalCompletedSets = sets.filter(s => s.completed).length;
   const progressPercent = sets.length > 0 ? (totalCompletedSets / sets.length) * 100 : 0;
@@ -172,13 +192,22 @@ export default function ActiveWorkoutScreen() {
         <View style={styles.topBarInner}>
           <Pressable style={styles.topBtn} onPress={handleEnd}>
             <X size={20} color={Colors.onSurface} />
-            <Text style={styles.endText}>END</Text>
+            <Text style={styles.endText}>{t('workoutActive.end')}</Text>
           </Pressable>
           <View style={styles.centerTitles}>
             <Text style={styles.topSubtitle}>{clock}</Text>
             <Text style={styles.topTitle}>{name}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 12 }}>
+            {exercises.length > 0 && (
+              <Pressable style={styles.topBtn} onPress={toggleViewMode}>
+                {viewMode === 'list' ? (
+                  <Focus size={20} color={Colors.onSurface} />
+                ) : (
+                  <List size={20} color={Colors.onSurface} />
+                )}
+              </Pressable>
+            )}
             <Pressable style={styles.topBtn} onPress={() => router.push('/workout/exercise-picker')}>
               <Plus size={20} color={Colors.onSurface} />
             </Pressable>
@@ -192,53 +221,91 @@ export default function ActiveWorkoutScreen() {
         </View>
       </View>
 
-      <FlatList
-        ref={listRef}
-        data={exercises}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        onScrollToIndexFailed={(info) => {
-            const offset = info.averageItemLength * info.index;
-            listRef.current?.scrollToOffset({ offset, animated: true });
-          }}
-        renderItem={({ item, index }) => {
+      {viewMode === 'focus' && exercises.length > 0 ? (
+        (() => {
+          const item = exercises[focusIndex];
           const exerciseSets = sets.filter((s) => s.exerciseId === item.id);
+          const muscleGroupKey = `exercisePicker.${item.muscleGroup}`;
+          const muscleGroupLabel = t(muscleGroupKey);
           return (
-            <ExerciseCard
+            <FocusView
               exerciseName={item.nameRu || item.name}
-              muscleGroup={item.muscleGroup.toUpperCase()}
+              muscleGroup={(muscleGroupLabel === muscleGroupKey ? item.muscleGroup : muscleGroupLabel).toUpperCase()}
+              movementPattern={classifyMovementPattern(item.name, item.muscleGroup)}
               setType={item.setType as any}
               sets={exerciseSets}
+              exerciseIndex={focusIndex}
+              totalExercises={exercises.length}
+              isResting={isRunning}
+              restSeconds={seconds}
+              restTotalSeconds={totalSeconds}
+              onSkipRest={stopTimer}
               onUpdateSet={(num, data) => onUpdateSet(item.id, num, data)}
               onCompleteSet={(num) => onCompleteSet(item.id, num)}
-              onAddSet={() => onAddSet(item.id)}
+              onPrevExercise={() => setFocusIndex((i) => Math.max(0, i - 1))}
+              onNextExercise={() => setFocusIndex((i) => Math.min(exercises.length - 1, i + 1))}
+              canPrev={focusIndex > 0}
+              canNext={focusIndex < exercises.length - 1}
             />
           );
-        }}
-        ListEmptyComponent={
-          <Pressable
-            style={styles.emptyState}
-            onPress={() => router.push('/workout/exercise-picker')}
-          >
-            <Plus size={28} color={Colors.primaryContainer} />
-            <Text style={styles.emptyStateText}>TAP TO ADD EXERCISES</Text>
-          </Pressable>
-        }
-        ListFooterComponent={
-          <Pressable style={styles.completeBtn} onPress={handleCompleteMission}>
-            <Text style={styles.completeBtnText}>COMPLETE MISSION</Text>
-          </Pressable>
-        }
-      />
+        })()
+      ) : (
+        <FlatList
+          ref={listRef}
+          data={exercises}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          onScrollToIndexFailed={(info) => {
+              const offset = info.averageItemLength * info.index;
+              listRef.current?.scrollToOffset({ offset, animated: true });
+            }}
+          renderItem={({ item, index }) => {
+            const exerciseSets = sets.filter((s) => s.exerciseId === item.id);
+            const muscleGroupKey = `exercisePicker.${item.muscleGroup}`;
+            const muscleGroupLabel = t(muscleGroupKey);
+            // Exercise instructions stay in English regardless of app language.
+            const instructions = item.instructions;
+            return (
+              <ExerciseCard
+                exerciseName={item.nameRu || item.name}
+                muscleGroup={(muscleGroupLabel === muscleGroupKey ? item.muscleGroup : muscleGroupLabel).toUpperCase()}
+                movementPattern={classifyMovementPattern(item.name, item.muscleGroup)}
+                setType={item.setType as any}
+                sets={exerciseSets}
+                instructions={instructions ?? undefined}
+                onUpdateSet={(num, data) => onUpdateSet(item.id, num, data)}
+                onCompleteSet={(num) => onCompleteSet(item.id, num)}
+                onAddSet={() => onAddSet(item.id)}
+              />
+            );
+          }}
+          ListEmptyComponent={
+            <Pressable
+              style={styles.emptyState}
+              onPress={() => router.push('/workout/exercise-picker')}
+            >
+              <Plus size={28} color={Colors.primaryContainer} />
+              <Text style={styles.emptyStateText}>{t('workoutActive.tapToAdd')}</Text>
+            </Pressable>
+          }
+        />
+      )}
 
       <RestTimerFloat
-        visible={isRunning}
+        visible={viewMode === 'list' && isRunning}
         seconds={seconds}
         totalSeconds={totalSeconds}
         onSubtract10={() => startTimer(Math.max(1, seconds - 10))}
         onSkip={stopTimer}
         onAdd30={() => startTimer(seconds + 30)}
       />
+
+      {/* Sticky footer — always reachable regardless of scroll position */}
+      <View style={styles.stickyFooter} pointerEvents="box-none">
+        <Pressable style={styles.completeBtn} onPress={handleCompleteMission}>
+          <Text style={styles.completeBtnText}>{t('workoutActive.completeMissionBtn')}</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
@@ -299,7 +366,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 20,
-    paddingBottom: 180,
+    paddingBottom: 130,
   },
   emptyState: {
     alignItems: 'center',
@@ -318,13 +385,29 @@ const styles = StyleSheet.create({
     color: Colors.primaryContainer,
     letterSpacing: 2,
   },
+  stickyFooter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 20,
+    backgroundColor: 'rgba(12, 15, 15, 0.92)',
+    borderTopWidth: 1,
+    borderTopColor: Colors.surfaceVariant,
+  },
   completeBtn: {
     backgroundColor: Colors.primaryContainer,
     height: 56,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
+    shadowColor: 'rgba(195, 244, 0, 0.5)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 6,
   },
   completeBtnText: {
     fontFamily: 'Inter_600SemiBold',

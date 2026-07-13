@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Switch, Pressable, ScrollView, SafeAreaView, Alert, Share } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CloudOff, Cloud, Bell, Moon, Database, Shield, Download, ChevronLeft, HelpCircle, Camera } from 'lucide-react-native';
+import { CloudOff, Cloud, Bell, Languages, Database, Shield, Download, ChevronLeft, HelpCircle, Camera } from 'lucide-react-native';
 import { getDb } from '../../src/db/database';
+import { getSetting, setSetting } from '../../src/db/repositories/equipment';
+import { useLanguageStore } from '../../src/stores/languageStore';
+import { useTranslation } from '../../src/i18n/useTranslation';
 
 const Colors = {
   black: '#000000',
@@ -20,26 +23,33 @@ const Colors = {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const [haptics, setHaptics] = useState(true);
-  const [darkMode, setDarkMode] = useState(true);
-  
+  const { t } = useTranslation();
+  const language = useLanguageStore((s) => s.language);
+  const setLanguage = useLanguageStore((s) => s.setLanguage);
+  const [haptics, setHapticsState] = useState(() => getSetting('haptics_enabled') !== '0');
+
+  const setHaptics = (value: boolean) => {
+    setHapticsState(value);
+    setSetting('haptics_enabled', value ? '1' : '0');
+  };
+
   const handleCloudSync = () => {
     Alert.alert(
-      "Cloud Sync",
-      "PowerSync & Supabase integration requires active backend credentials. Currently running in Local-First Mode.",
-      [{ text: "Understood", style: "default" }]
+      t('settingsIndex.cloudSyncTitle'),
+      t('settingsIndex.cloudSyncBody'),
+      [{ text: t('settingsIndex.understood'), style: 'default' }]
     );
   };
 
   const handlePurge = () => {
     Alert.alert(
-      "Purge Local Cache",
-      "Are you sure you want to delete all local workout and telemetry data? This cannot be undone.",
+      t('settingsIndex.purgeTitle'),
+      t('settingsIndex.purgeBody'),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: "Purge",
-          style: "destructive",
+          text: t('settingsIndex.purge'),
+          style: 'destructive',
           onPress: () => {
             try {
               const db = getDb();
@@ -49,10 +59,10 @@ export default function SettingsScreen() {
                 DELETE FROM nutrition_logs;
                 DELETE FROM body_metrics;
               `);
-              Alert.alert("Done", "All training data has been purged.");
+              Alert.alert(t('settingsIndex.purgeDoneTitle'), t('settingsIndex.purgeDoneBody'));
             } catch (e) {
               console.error("Purge failed", e);
-              Alert.alert("Error", "Failed to purge data.");
+              Alert.alert(t('common.error'), t('settingsIndex.purgeFailBody'));
             }
           },
         },
@@ -85,7 +95,7 @@ export default function SettingsScreen() {
 
       await Share.share({ message: csv, title: 'GenSentiel Workout Log' });
     } catch (e) {
-      Alert.alert('Export Error', 'Could not export data.');
+      Alert.alert(t('settingsIndex.exportErrorTitle'), t('settingsIndex.exportErrorBody'));
     }
   };
 
@@ -112,7 +122,7 @@ export default function SettingsScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <ChevronLeft size={24} color={Colors.onSurface} />
         </Pressable>
-        <Text style={styles.topTitle}>SETTINGS</Text>
+        <Text style={styles.topTitle}>{t('settingsIndex.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -126,92 +136,100 @@ export default function SettingsScreen() {
             </View>
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>Anonymous Sentinel</Text>
-            <Text style={styles.profileStatus}>Local Node Active</Text>
+            <Text style={styles.profileName}>{t('settingsIndex.profileName')}</Text>
+            <Text style={styles.profileStatus}>{t('settingsIndex.profileStatus')}</Text>
           </View>
           <Pressable style={styles.syncBtn} onPress={handleCloudSync}>
-            <Text style={styles.syncBtnText}>SYNC DATA</Text>
+            <Text style={styles.syncBtnText}>{t('settingsIndex.syncData')}</Text>
           </Pressable>
         </View>
 
         {/* Offline Banner */}
         <View style={styles.offlineBanner}>
           <CloudOff size={16} color={Colors.onSurfaceVariant} />
-          <Text style={styles.offlineText}>System Offline - Local Storage Only</Text>
+          <Text style={styles.offlineText}>{t('settingsIndex.offline')}</Text>
         </View>
 
         {/* Preferences */}
-        {renderSectionHeader('SYSTEM PREFERENCES')}
+        {renderSectionHeader(t('settingsIndex.systemPreferences'))}
         <View style={styles.group}>
           {renderRow(
-            <Bell size={20} color={Colors.primaryContainer} />, 
-            'Tactical Alerts (Haptics)',
-            <Switch 
-              value={haptics} 
-              onValueChange={setHaptics} 
+            <Bell size={20} color={Colors.primaryContainer} />,
+            t('settingsIndex.hapticsRow'),
+            <Switch
+              value={haptics}
+              onValueChange={setHaptics}
               trackColor={{ false: Colors.surfaceVariant, true: Colors.primaryContainer }}
               thumbColor={haptics ? Colors.black : Colors.onSurfaceVariant}
             />
           )}
           {renderRow(
-            <Moon size={20} color={Colors.primaryContainer} />, 
-            'Dark Protocol',
-            <Switch 
-              value={darkMode} 
-              onValueChange={setDarkMode}
-              trackColor={{ false: Colors.surfaceVariant, true: Colors.primaryContainer }}
-              thumbColor={darkMode ? Colors.black : Colors.onSurfaceVariant}
-            />
+            <Languages size={20} color={Colors.primaryContainer} />,
+            t('settingsIndex.language'),
+            <View style={styles.langSwitch}>
+              <Pressable
+                style={[styles.langChip, language === 'en' && styles.langChipActive]}
+                onPress={() => setLanguage('en')}
+              >
+                <Text style={[styles.langChipText, language === 'en' && styles.langChipTextActive]}>EN</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.langChip, language === 'ru' && styles.langChipActive]}
+                onPress={() => setLanguage('ru')}
+              >
+                <Text style={[styles.langChipText, language === 'ru' && styles.langChipTextActive]}>RU</Text>
+              </Pressable>
+            </View>
           )}
         </View>
 
         {/* Cloud & Data */}
-        {renderSectionHeader('DATA NODE')}
+        {renderSectionHeader(t('settingsIndex.dataNode'))}
         <View style={styles.group}>
           {renderRow(
-            <Camera size={20} color={Colors.onSurface} />, 
-            'Progress Photos',
+            <Camera size={20} color={Colors.onSurface} />,
+            t('settingsIndex.progressPhotos'),
             <View style={{ transform: [{ rotate: '180deg' }] }}><ChevronLeft size={20} color={Colors.onSurfaceVariant} /></View>,
             () => router.push('/settings/photos')
           )}
           {renderRow(
-            <Cloud size={20} color={Colors.violet} />, 
-            'Cloud Sync (PowerSync)',
+            <Cloud size={20} color={Colors.violet} />,
+            t('settingsIndex.cloudSync'),
             null,
             handleCloudSync
           )}
           {renderRow(
             <Download size={20} color={Colors.primaryContainer} />,
-            'Export Telemetry',
+            t('settingsIndex.exportTelemetry'),
             null,
             handleExport
           )}
           {renderRow(
-            <Database size={20} color={Colors.error} />, 
-            'Purge Local Cache',
+            <Database size={20} color={Colors.error} />,
+            t('settingsIndex.purgeCache'),
             null,
             handlePurge
           )}
         </View>
 
         {/* Info */}
-        {renderSectionHeader('SYSTEM INFO')}
+        {renderSectionHeader(t('settingsIndex.systemInfo'))}
         <View style={styles.group}>
           {renderRow(
             <Shield size={20} color={Colors.primaryContainer} />,
-            'Privacy Policy',
+            t('settingsIndex.privacyPolicy'),
             <View style={{ transform: [{ rotate: '180deg' }] }}><ChevronLeft size={20} color={Colors.onSurfaceVariant} /></View>,
             () => router.push('/settings/privacy')
           )}
           {renderRow(
             <HelpCircle size={20} color={Colors.primaryContainer} />,
-            'Help & Documentation',
+            t('settingsIndex.helpDocs'),
             <View style={{ transform: [{ rotate: '180deg' }] }}><ChevronLeft size={20} color={Colors.onSurfaceVariant} /></View>,
             () => router.push('/settings/help')
           )}
         </View>
 
-        <Text style={styles.version}>GenSentiel v1.0.0 • Local Build</Text>
+        <Text style={styles.version}>{t('settingsIndex.version')}</Text>
 
       </ScrollView>
     </SafeAreaView>
@@ -365,6 +383,29 @@ const styles = StyleSheet.create({
   },
   rowRight: {
     justifyContent: 'center',
+  },
+  langSwitch: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surfaceVariant,
+    borderRadius: 8,
+    padding: 2,
+    gap: 2,
+  },
+  langChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  langChipActive: {
+    backgroundColor: Colors.primaryContainer,
+  },
+  langChipText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 12,
+    color: Colors.onSurfaceVariant,
+  },
+  langChipTextActive: {
+    color: Colors.black,
   },
   version: {
     fontFamily: 'Inter_600SemiBold',

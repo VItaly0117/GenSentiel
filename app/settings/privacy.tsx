@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
+import { useTranslation } from '../../src/i18n/useTranslation';
+import { translations } from '../../src/i18n/translations';
 
 const Colors = {
   black: '#000000',
@@ -13,39 +15,11 @@ const Colors = {
   cardBorder: '#2A2A2A',
 };
 
-const SECTIONS = [
-  {
-    title: 'Data Storage',
-    body: 'All your data — workouts, body metrics, nutrition logs, and progress photos — is stored exclusively on your device. GenSentiel does not transmit any personal data to external servers.',
-  },
-  {
-    title: 'No Account Required',
-    body: 'GenSentiel operates in local-first mode. No account, email, or personal information is required to use the app.',
-  },
-  {
-    title: 'Progress Photos',
-    body: 'Progress photos are saved to your device\'s document directory and are never uploaded, shared, or accessed by anyone other than you.',
-  },
-  {
-    title: 'Analytics & Tracking',
-    body: 'GenSentiel contains no analytics SDKs, crash reporters, or third-party tracking libraries. Your activity inside the app is invisible to us.',
-  },
-  {
-    title: 'Data Export',
-    body: 'You can export your workout telemetry as a CSV file at any time via Settings → Export Telemetry. You own your data completely.',
-  },
-  {
-    title: 'Data Deletion',
-    body: 'You can permanently delete all training data at any time via Settings → Purge Local Cache. Uninstalling the app also removes all stored data.',
-  },
-  {
-    title: 'Contact',
-    body: 'This is a local-first application with no external operator. All data control belongs entirely to you.',
-  },
-];
-
 export default function PrivacyScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+  // Policy body text stays in English regardless of app language — only short UI chrome is localized.
+  const privacyEn = translations.en.privacy;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -53,23 +27,23 @@ export default function PrivacyScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <ChevronLeft size={24} color={Colors.onSurface} />
         </Pressable>
-        <Text style={styles.topTitle}>PRIVACY POLICY</Text>
+        <Text style={styles.topTitle}>{t('privacy.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <Text style={styles.intro}>
-          GenSentiel is a privacy-first, offline fitness tracker. Here's exactly how your data is handled.
+          {privacyEn.intro}
         </Text>
 
-        {SECTIONS.map((s) => (
+        {privacyEn.sections.map((s) => (
           <View key={s.title} style={styles.card}>
             <Text style={styles.cardTitle}>{s.title}</Text>
             <Text style={styles.cardBody}>{s.body}</Text>
           </View>
         ))}
 
-        <Text style={styles.version}>Last updated: 2025 • Version 1.0.0</Text>
+        <Text style={styles.version}>{privacyEn.version}</Text>
       </ScrollView>
     </SafeAreaView>
   );

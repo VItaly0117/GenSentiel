@@ -15,6 +15,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { getDb } from '../../src/db/database';
 import { getDayNutrition } from '../../src/db/repositories/nutrition';
 import { getBodyMetricsHistory } from '../../src/db/repositories/nutrition';
+import { useTranslation } from '../../src/i18n/useTranslation';
 
 const C = {
   black: '#000000',
@@ -38,6 +39,7 @@ const C = {
 };
 
 function CalorieRing({ calories = 0, goal = 2500 }: { calories?: number; goal?: number }) {
+  const { t } = useTranslation();
   const size = 160;
   const strokeWidth = 8;
   const radius = (size - strokeWidth) / 2;
@@ -70,7 +72,7 @@ function CalorieRing({ calories = 0, goal = 2500 }: { calories?: number; goal?: 
       </Svg>
       <View style={styles.ringCenter}>
         <Text style={styles.ringValue}>{calories}</Text>
-        <Text style={styles.ringUnit}>KCAL</Text>
+        <Text style={styles.ringUnit}>{t('home.kcal')}</Text>
       </View>
     </View>
   );
@@ -148,6 +150,7 @@ function calcWeekSessions(db: ReturnType<typeof getDb>): number {
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [calories, setCalories] = useState(0);
   const [weight, setWeight] = useState<string>('--');
   const [bodyFat, setBodyFat] = useState<string>('--');
@@ -211,9 +214,9 @@ export default function DashboardScreen() {
     const d = new Date(isoStr);
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    return `${diffDays}d ago`;
+    if (diffDays === 0) return t('common.today');
+    if (diffDays === 1) return t('common.yesterday');
+    return t('home.daysAgo', { count: diffDays });
   };
 
   const formatDuration = (s: number) => `${Math.floor(s / 60)} min`;
@@ -230,7 +233,7 @@ export default function DashboardScreen() {
         <Pressable style={styles.iconBtn} onPress={() => router.push('/settings')}>
           <Menu size={24} color={C.onSurface} />
         </Pressable>
-        <Text style={styles.appTitle}>GenSentiel</Text>
+        <Text style={styles.appTitle}>{t('home.appTitle')}</Text>
         <Pressable style={styles.iconBtn} onPress={loadData}>
           <RefreshCw size={20} color={C.onSurfaceVariant} />
         </Pressable>
@@ -243,7 +246,7 @@ export default function DashboardScreen() {
       >
         {/* Hero Card — Daily Output */}
         <View style={styles.heroCard}>
-          <Text style={styles.heroLabel}>DAILY OUTPUT</Text>
+          <Text style={styles.heroLabel}>{t('home.dailyOutput')}</Text>
           <CalorieRing calories={calories} goal={2500} />
           <Pressable
             style={({ pressed }) => [
@@ -253,26 +256,26 @@ export default function DashboardScreen() {
             onPress={() => router.push('/workout')}
           >
             <Play size={18} color="#000000" fill="#000000" />
-            <Text style={styles.heroButtonText}>Start Today's Session</Text>
+            <Text style={styles.heroButtonText}>{t('home.startSession')}</Text>
           </Pressable>
         </View>
 
         {/* Stats Bento Grid */}
         <View style={styles.statsGrid}>
-          <StatCard label="WEIGHT" value={weight} unit={weight !== '--' ? 'kg' : undefined} />
+          <StatCard label={t('home.weight')} value={weight} unit={weight !== '--' ? 'kg' : undefined} />
           <StatCard
-            label="BODY FAT"
+            label={t('home.bodyFat')}
             value={bodyFat}
             unit={bodyFat !== '--' ? '%' : undefined}
             accentColor={C.tertiaryFixedDim}
           />
           <StatCard
-            label="STREAK"
+            label={t('home.streak')}
             value={String(streak)}
-            unit="days"
+            unit={t('home.streakUnit')}
             accentColor={C.primaryFixedDim}
           />
-          <StatCard label="THIS WEEK" value={String(weekSessions)} unit="sessions" />
+          <StatCard label={t('home.thisWeek')} value={String(weekSessions)} unit={t('home.sessionsUnit')} />
         </View>
 
         {/* Progression Alert */}
@@ -282,13 +285,13 @@ export default function DashboardScreen() {
               <TrendingUp size={20} color={C.primaryFixedDim} />
             </View>
             <View style={styles.alertTextContainer}>
-              <Text style={styles.alertTitle}>PROGRESSION ALERT</Text>
+              <Text style={styles.alertTitle}>{t('home.progressionAlert')}</Text>
               <Text style={styles.alertSubtitle}>
-                Check your history for progression suggestions
+                {t('home.progressionAlertDesc')}
               </Text>
             </View>
             <Pressable style={styles.alertViewBtn} onPress={() => router.push('/(tabs)/history')}>
-              <Text style={styles.alertViewText}>View</Text>
+              <Text style={styles.alertViewText}>{t('home.view')}</Text>
             </Pressable>
           </View>
         </View>
@@ -297,7 +300,7 @@ export default function DashboardScreen() {
         {lastWorkout ? (
           <View style={styles.lastWorkoutCard}>
             <View style={styles.lastWorkoutHeader}>
-              <Text style={styles.sectionTitle}>LAST MISSION</Text>
+              <Text style={styles.sectionTitle}>{t('home.lastMission')}</Text>
               <View style={styles.yesterdayBadge}>
                 <Text style={styles.yesterdayText}>{formatLastWorkoutDate(lastWorkout.started_at)}</Text>
               </View>
@@ -308,7 +311,7 @@ export default function DashboardScreen() {
                 <>
                   <View style={styles.workoutStatItem}>
                     <Dumbbell size={14} color={C.onSurfaceVariant} />
-                    <Text style={styles.workoutStatText}>{lastWorkoutStats.exercises} Exercises</Text>
+                    <Text style={styles.workoutStatText}>{lastWorkoutStats.exercises} {t('home.exercisesLabel')}</Text>
                   </View>
                   <View style={styles.dotSep} />
                 </>
@@ -328,14 +331,14 @@ export default function DashboardScreen() {
               )}
             </View>
             <Pressable style={styles.viewWorkoutRow} onPress={() => router.push('/(tabs)/history')}>
-              <Text style={styles.viewWorkoutText}>View Details</Text>
+              <Text style={styles.viewWorkoutText}>{t('home.viewDetails')}</Text>
               <ChevronRight size={16} color={C.primaryFixedDim} />
             </Pressable>
           </View>
         ) : (
           <View style={styles.lastWorkoutCard}>
-            <Text style={styles.sectionTitle}>LAST MISSION</Text>
-            <Text style={[styles.workoutStatText, { marginTop: 8 }]}>No workouts logged yet. Start your first session!</Text>
+            <Text style={styles.sectionTitle}>{t('home.lastMission')}</Text>
+            <Text style={[styles.workoutStatText, { marginTop: 8 }]}>{t('home.noWorkoutsYet')}</Text>
           </View>
         )}
       </ScrollView>

@@ -14,6 +14,7 @@ import {
 } from '@expo-google-fonts/space-grotesk';
 import { runMigrations } from '../src/db/migrations';
 import { seedExercises } from '../src/db/seeds/exercises';
+import { useLanguageStore } from '../src/stores/languageStore';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -32,6 +33,7 @@ export default function RootLayout() {
       try {
         runMigrations();
         seedExercises();
+        useLanguageStore.getState().init();
         setDbReady(true);
       } catch (error) {
         console.error('[GenSentiel] DB init error:', error);

@@ -4,6 +4,7 @@ import { Activity, Scaling, Ruler, Expand, Plus, Settings, X } from 'lucide-reac
 import { useRouter, useFocusEffect } from 'expo-router';
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { getBodyMetricsHistory, saveBodyMetrics, BodyMetric } from '../../src/db/repositories/nutrition';
+import { useTranslation } from '../../src/i18n/useTranslation';
 
 const Colors = {
   black: '#000000',
@@ -21,6 +22,7 @@ const Colors = {
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [history, setHistory] = useState<BodyMetric[]>([]);
   const [current, setCurrent] = useState<BodyMetric | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -108,11 +110,11 @@ export default function ProfileScreen() {
         
         {/* Header */}
         <View style={styles.headerRow}>
-          <Text style={styles.title}>BODY METRICS</Text>
+          <Text style={styles.title}>{t('profile.title')}</Text>
           <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
             <Pressable style={styles.logButton} onPress={openLog}>
               <Plus size={16} color={Colors.black} />
-              <Text style={styles.logButtonText}>LOG TODAY</Text>
+              <Text style={styles.logButtonText}>{t('profile.logToday')}</Text>
             </Pressable>
             <Pressable onPress={() => router.push('/settings')}>
               <Settings size={24} color={Colors.onSurfaceVariant} />
@@ -124,54 +126,54 @@ export default function ProfileScreen() {
         <View style={styles.glassCard}>
           <View style={styles.glassHeader}>
             <View>
-              <Text style={styles.glassLabel}>CURRENT WEIGHT</Text>
+              <Text style={styles.glassLabel}>{t('profile.currentWeight')}</Text>
               <Text style={styles.glassValue}>
-                {current?.weight_kg || '--'} <Text style={styles.glassUnit}>KG</Text>
+                {current?.weight_kg || '--'} <Text style={styles.glassUnit}>{t('profile.kg')}</Text>
               </Text>
             </View>
             <View style={styles.trendBadge}>
               <View style={styles.trendDot} />
-              <Text style={styles.trendText}>30 DAY TREND</Text>
+              <Text style={styles.trendText}>{t('profile.trend30Day')}</Text>
             </View>
           </View>
-          
+
           {renderChart()}
-          
+
           <View style={styles.chartLabels}>
-            <Text style={styles.chartLabelText}>30 Days Ago</Text>
-            <Text style={styles.chartLabelText}>Today</Text>
+            <Text style={styles.chartLabelText}>{t('profile.daysAgo30')}</Text>
+            <Text style={styles.chartLabelText}>{t('profile.today')}</Text>
           </View>
         </View>
 
         {/* Composition Matrix */}
-        <Text style={styles.sectionTitle}>Composition Matrix</Text>
-        
+        <Text style={styles.sectionTitle}>{t('profile.compositionMatrix')}</Text>
+
         <View style={styles.bentoGrid}>
           {/* Body Fat */}
           <View style={styles.bentoBox}>
             <Activity size={20} color={Colors.secondary} style={styles.bentoIcon} />
-            <Text style={styles.bentoLabel}>BODY FAT</Text>
+            <Text style={styles.bentoLabel}>{t('profile.bodyFat')}</Text>
             <Text style={styles.bentoValue}>{current?.body_fat_pct ? `${current.body_fat_pct}%` : '--'}</Text>
           </View>
 
           {/* Waist */}
           <View style={styles.bentoBox}>
             <Ruler size={20} color={Colors.secondary} style={styles.bentoIcon} />
-            <Text style={styles.bentoLabel}>WAIST</Text>
+            <Text style={styles.bentoLabel}>{t('profile.waist')}</Text>
             <Text style={styles.bentoValue}>{current?.waist_cm ? `${current.waist_cm} cm` : '--'}</Text>
           </View>
 
           {/* Chest */}
           <View style={styles.bentoBox}>
             <Expand size={20} color={Colors.secondary} style={styles.bentoIcon} />
-            <Text style={styles.bentoLabel}>CHEST</Text>
+            <Text style={styles.bentoLabel}>{t('profile.chest')}</Text>
             <Text style={styles.bentoValue}>{current?.chest_cm ? `${current.chest_cm} cm` : '--'}</Text>
           </View>
-          
+
           {/* Arms */}
           <View style={styles.bentoBox}>
             <Scaling size={20} color={Colors.secondary} style={styles.bentoIcon} />
-            <Text style={styles.bentoLabel}>ARMS</Text>
+            <Text style={styles.bentoLabel}>{t('profile.arms')}</Text>
             <Text style={styles.bentoValue}>{current?.arms_cm ? `${current.arms_cm} cm` : '--'}</Text>
           </View>
         </View>
@@ -183,69 +185,69 @@ export default function ProfileScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>LOG METRICS</Text>
+              <Text style={styles.modalTitle}>{t('profile.logMetrics')}</Text>
               <Pressable onPress={() => setShowModal(false)}>
                 <X size={20} color={Colors.onSurfaceVariant} />
               </Pressable>
             </View>
 
-            <Text style={styles.inputLabel}>WEIGHT (KG)</Text>
+            <Text style={styles.inputLabel}>{t('profile.weightLabel')}</Text>
             <TextInput
               style={styles.input}
               value={weightInput}
               onChangeText={setWeightInput}
               keyboardType="decimal-pad"
-              placeholder="e.g. 80.5"
+              placeholder={t('profile.weightPlaceholder')}
               placeholderTextColor={Colors.onSurfaceVariant}
             />
 
-            <Text style={styles.inputLabel}>BODY FAT (%)</Text>
+            <Text style={styles.inputLabel}>{t('profile.bodyFatLabel')}</Text>
             <TextInput
               style={styles.input}
               value={bodyFatInput}
               onChangeText={setBodyFatInput}
               keyboardType="decimal-pad"
-              placeholder="e.g. 18.0"
+              placeholder={t('profile.bodyFatPlaceholder')}
               placeholderTextColor={Colors.onSurfaceVariant}
             />
 
-            <Text style={styles.inputLabel}>WAIST (CM)</Text>
+            <Text style={styles.inputLabel}>{t('profile.waistLabel')}</Text>
             <TextInput
               style={styles.input}
               value={waistInput}
               onChangeText={setWaistInput}
               keyboardType="decimal-pad"
-              placeholder="e.g. 85"
+              placeholder={t('profile.waistPlaceholder')}
               placeholderTextColor={Colors.onSurfaceVariant}
             />
 
             <View style={styles.modalRow}>
               <View style={styles.modalHalf}>
-                <Text style={styles.inputLabel}>CHEST (CM)</Text>
+                <Text style={styles.inputLabel}>{t('profile.chestLabel')}</Text>
                 <TextInput
                   style={styles.input}
                   value={chestInput}
                   onChangeText={setChestInput}
                   keyboardType="decimal-pad"
-                  placeholder="e.g. 104"
+                  placeholder={t('profile.chestPlaceholder')}
                   placeholderTextColor={Colors.onSurfaceVariant}
                 />
               </View>
               <View style={styles.modalHalf}>
-                <Text style={styles.inputLabel}>ARMS (CM)</Text>
+                <Text style={styles.inputLabel}>{t('profile.armsLabel')}</Text>
                 <TextInput
                   style={styles.input}
                   value={armsInput}
                   onChangeText={setArmsInput}
                   keyboardType="decimal-pad"
-                  placeholder="e.g. 38"
+                  placeholder={t('profile.armsPlaceholder')}
                   placeholderTextColor={Colors.onSurfaceVariant}
                 />
               </View>
             </View>
 
             <Pressable style={styles.saveButton} onPress={handleSave}>
-              <Text style={styles.saveButtonText}>SAVE METRICS</Text>
+              <Text style={styles.saveButtonText}>{t('profile.saveMetrics')}</Text>
             </Pressable>
           </View>
         </KeyboardAvoidingView>

@@ -15,6 +15,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 
 import { Colors, FontFamily, Radius, Spacing } from '../../theme/tokens';
+import { haptics } from '../../utils/haptics';
 
 // ── Animated wrapper ───────────────────────────────────────────────
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -66,7 +67,7 @@ export function Button({
   }, [scale]);
 
   const handlePress = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptics.impact(Haptics.ImpactFeedbackStyle.Light);
     onPress();
   }, [onPress]);
 

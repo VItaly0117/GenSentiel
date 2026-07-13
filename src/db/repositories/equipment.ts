@@ -1,4 +1,5 @@
 import { getDb } from '../database';
+import type { TrainingGoal } from '../../types';
 
 export type EquipmentKey =
   | 'bodyweight'
@@ -89,4 +90,13 @@ export function setSetting(key: string, value: string): void {
     key,
     value
   );
+}
+
+export function getUserGoal(): TrainingGoal {
+  const value = getSetting('training_goal');
+  return (value as TrainingGoal) ?? 'general_fitness';
+}
+
+export function saveUserGoal(goal: TrainingGoal): void {
+  setSetting('training_goal', goal);
 }
